@@ -113,6 +113,10 @@ identifying component (for example, no organism) produces no event for that comp
     values are aggregated into lists.
 - **Uninformative columns.** `LANGUAGE`, `RELIGION` and `MARITAL_STATUS` hold a single value across the
     release and are not extracted.
+- **Local diagnosis codes.** Diagnoses use PIC's extended Chinese ICD-10 codes (`ICD10_CN`), so they do
+    not yet line up with standard ICD-10 codes in other datasets. Valid standard codes are attached as
+    `parent_codes`. Mapping equivalent codes to standard ICD-10 needs a MEDS-Extract feature; see
+    [#1](https://github.com/rvandewater/PICdb_MEDS/issues/1).
 
 ## Testing
 
