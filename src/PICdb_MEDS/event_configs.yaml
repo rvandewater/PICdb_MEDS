@@ -1,0 +1,324 @@
+# The complete PIC (Paediatric Intensive Care database, v1.1.0) MEDS ETL. This one file *is* the
+# package: `sources:` says where the raw data comes from, `etl:` supplies the run knobs, and every
+# other top-level key is a raw table whose events are extracted from it. It is registered with
+# `meds-extract-run` under the name `PICdb` (see this repo's `pyproject.toml`), so the whole ETL is
+# one command:
+#
+#     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
+#
+# Conventions used throughout:
+#
+# - Table keys are paths relative to the raw input directory without the format suffix. PhysioNet's
+#   v1.1.0 release keeps the full, current set of tables under `V1.1.0/` (the gzipped files at the
+#   release root are the superseded v1.0.0 tables), so every table here lives under that prefix.
+# - Every timestamp in PIC is "%Y-%m-%d %H:%M:%S". Dates were shifted 50-100 years into the future
+#   per patient (intervals within a patient are preserved), so years 2049-2119 are expected.
+# - PIC's `ITEMID`s are character fields. All `ITEMID`s that appear in event codes are matched back
+#   to the `D_ITEMS` / `D_LABITEMS` dictionaries, which provide English labels.
+# - Codes are built from English columns. Where PIC carries the original Chinese term in a `*_CN`
+#   column (or a Chinese-only column), it is kept as code metadata (`*_cn` columns in
+#   `metadata/codes.parquet`), never in the code itself.
+# - Null components of composite codes are coalesced to 'UNK' only where a missing value is still a
+#   meaningful event (e.g. a lab result without a unit); elsewhere the row is dropped.
+
+etl:
+  # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
+  # makes the spec self-describing when it is resolved by `pkg://` reference or filesystem path.
+  dataset_name: PICdb
+  n_subjects_per_shard: 1000
+
+_defaults:
+  subject_id: $SUBJECT_ID
+
+V1.1.0/PATIENTS:
+  _table:
+    join:
+      # Earliest in-hospital death time per subject. `min` over the fixed-width
+      # "%Y-%m-%d %H:%M:%S" strings is chronological.
+      V1.1.0/ADMISSIONS:
+        key: SUBJECT_ID
+        cols: { DEATHTIME: min }
+  gender:
+    code: 'f"GENDER//{$GENDER}"'
+    time: null
+  dob:
+    code: MEDS_BIRTH
+    time: '$DOB::"%Y-%m-%d %H:%M:%S"'
+  death:
+    code: MEDS_DEATH
+    # Every non-null `DOD` agrees with the admission `DEATHTIME`, but a handful of subjects have
+    # only the latter, so it takes precedence and `DOD` is the fallback.
+    time: coalesce($DEATHTIME::?"%Y-%m-%d %H:%M:%S", $DOD::?"%Y-%m-%d %H:%M:%S")
+
+# `EDREGTIME`/`EDOUTTIME` are identical to `ADMITTIME`/`DISCHTIME` in every row, so no separate ED
+# events are emitted. `LANGUAGE`, `RELIGION` and `MARITAL_STATUS` each hold a single value across
+# the whole release and are omitted as uninformative.
+V1.1.0/ADMISSIONS:
+  admission:
+    code: 'f"HOSPITAL_ADMISSION//{$ADMISSION_DEPARTMENT}"'
+    time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+  insurance:
+    code: 'f"INSURANCE//{$INSURANCE}"'
+    time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+  ethnicity:
+    code: 'f"ETHNICITY//{$ETHNICITY}"'
+    time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+  admission_diagnosis:
+    # The admitting diagnosis, in PIC's extended (Chinese national) ICD-10 coding.
+    code: 'f"ADMISSION_DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    _metadata:
+      V1.1.0/D_ICD_DIAGNOSES:
+        ICD10_CODE_CN: $ICD10_CODE_CN
+        description: $TITLE
+        title_cn: $TITLE_CN
+        # Only codes that are valid 3- or 4-character WHO ICD-10 codes get a parent; PIC's extended
+        # 5+-character codes and its non-standard entries carry none.
+        parent_codes: >-
+          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+  discharge:
+    code: 'f"HOSPITAL_DISCHARGE//{$DISCHARGE_DEPARTMENT}"'
+    time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+
+V1.1.0/ICUSTAYS:
+  icu_admission:
+    code: 'f"ICU_ADMISSION//{$FIRST_CAREUNIT}"'
+    time: '$INTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+  icu_discharge:
+    code: 'f"ICU_DISCHARGE//{$LAST_CAREUNIT}"'
+    time: '$OUTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+
+V1.1.0/DIAGNOSES_ICD:
+  # Diagnoses carry no timestamp of their own; they are placed at hospital discharge.
+  _table:
+    join:
+      V1.1.0/ADMISSIONS:
+        key: HADM_ID
+        cols: [DISCHTIME]
+  diagnosis:
+    code: 'f"DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    seq_num: $SEQ_NUM
+    diag_category: $Diag_Category
+    _metadata:
+      V1.1.0/D_ICD_DIAGNOSES:
+        ICD10_CODE_CN: $ICD10_CODE_CN
+        description: $TITLE
+        title_cn: $TITLE_CN
+        parent_codes: >-
+          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+
+V1.1.0/LABEVENTS:
+  lab:
+    code: f"LAB//{$ITEMID}//{$VALUEUOM ?? 'UNK'}"
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    numeric_value: $VALUENUM
+    text_value: $VALUE
+    flag: $FLAG
+    _metadata:
+      # Partial match on `ITEMID` alone: the dictionary has no unit column, so every unit variant
+      # of a test gets that test's description.
+      V1.1.0/D_LABITEMS:
+        ITEMID: $ITEMID
+        description: $LABEL
+        label_cn: $LABEL_CN
+        fluid: $FLUID
+        category: $CATEGORY
+        # Only well-formed LOINC codes (digits, dash, check digit) are emitted as parents.
+        parent_codes: >-
+          f"LOINC/{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
+
+V1.1.0/CHARTEVENTS:
+  chart:
+    code: f"CHART//{$ITEMID}//{$VALUEUOM ?? 'UNK'}"
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+    numeric_value: $VALUENUM
+    _metadata:
+      V1.1.0/D_ITEMS:
+        ITEMID: $ITEMID
+        description: $LABEL
+        label_cn: $LABEL_CN
+        category: $CATEGORY
+
+V1.1.0/INPUTEVENTS:
+  # PIC's input events record fluid intake amounts only; there is no item identifier.
+  fluid_input:
+    code: f"FLUID_INPUT//{$AMOUNTUOM ?? 'UNK'}"
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+    numeric_value: $AMOUNT
+
+V1.1.0/OUTPUTEVENTS:
+  output:
+    code: f"OUTPUT//{$ITEMID}//{$VALUEUOM ?? 'UNK'}"
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+    numeric_value: $VALUE
+    _metadata:
+      V1.1.0/D_ITEMS:
+        ITEMID: $ITEMID
+        description: $LABEL
+        label_cn: $LABEL_CN
+        category: $CATEGORY
+
+V1.1.0/PRESCRIPTIONS:
+  # `DRUG_NAME` is the Chinese name and `DRUG_NAME_EN` its English translation (the shipped SQL
+  # scripts label these columns `DRUG_NAME_CN` / `DRUG_NAME`, but the CSV headers are as used here).
+  medication_start:
+    code: f"MEDICATION//START//{$DRUG_NAME_EN}//{$DOSE_UNIT_RX ?? 'UNK'}"
+    time: '$STARTDATE::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+    numeric_value: $DOSE_VAL_RX
+    drug_form: $DRUG_FORM
+    prod_strength: $PROD_STRENGTH
+    _metadata:
+      _self:
+        drug_name_cn: $DRUG_NAME
+        drug_name_generic: $DRUG_NAME_GENERIC
+  medication_end:
+    code: 'f"MEDICATION//END//{$DRUG_NAME_EN}"'
+    time: '$ENDDATE::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    icustay_id: $ICUSTAY_ID
+    _metadata:
+      _self:
+        drug_name_cn: $DRUG_NAME
+
+V1.1.0/MICROBIOLOGYEVENTS:
+  # One raw row per (specimen, organism, antibiotic) result, so the specimen and organism events
+  # repeat across a culture's antibiotic rows; extraction de-duplicates identical events.
+  #
+  # Item IDs and their Chinese names are many-to-many in the raw data, so codes use the item IDs
+  # (labelled in English through `D_ITEMS`, which covers every organism and antibiotic ID but only
+  # some specimen IDs) and the Chinese names are kept as code metadata.
+  specimen:
+    code: 'f"MICROBIOLOGY//SPECIMEN//{$SPEC_ITEMID}"'
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    _metadata:
+      V1.1.0/D_ITEMS:
+        SPEC_ITEMID: $ITEMID
+        description: $LABEL
+      _self:
+        spec_type_desc_cn: $SPEC_TYPE_DESC
+  organism:
+    code: 'f"MICROBIOLOGY//ORGANISM//{$ORG_ITEMID}"'
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    spec_itemid: $SPEC_ITEMID
+    _metadata:
+      V1.1.0/D_ITEMS:
+        ORG_ITEMID: $ITEMID
+        description: $LABEL
+      _self:
+        org_name_cn: $ORG_NAME
+  susceptibility:
+    code: f"MICROBIOLOGY//SUSCEPTIBILITY//{$AB_ITEMID}//{$INTERPRETATION ?? 'UNK'}"
+    time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    spec_itemid: $SPEC_ITEMID
+    org_itemid: $ORG_ITEMID
+    numeric_value: $DILUTION_VALUE
+    dilution_comparison: $DILUTION_COMPARISON
+    _metadata:
+      V1.1.0/D_ITEMS:
+        AB_ITEMID: $ITEMID
+        description: $LABEL
+      _self:
+        ab_name_cn: $AB_NAME
+
+V1.1.0/OR_EXAM_REPORTS:
+  # Only the examination event is released, not the report content. Rows without an exam time fall
+  # back to the report time.
+  exam:
+    code: 'f"EXAM//{$EXAM_ITEM_TYPE_NAME}//{$EXAM_ITEM_NAME}"'
+    time: coalesce($EXAMTIME::?"%Y-%m-%d %H:%M:%S", $REPORTTIME::?"%Y-%m-%d %H:%M:%S")
+    hadm_id: $HADM_ID
+    exam_part: $EXAM_PART_NAME
+
+V1.1.0/EMR_SYMPTOMS:
+  # NLP-extracted from progress notes and discharge summaries; the attribute is "+" (present) or
+  # "-" (absent).
+  symptom:
+    code: 'f"SYMPTOM//{$SYMPTOM_NAME}//{$SYMPTOM_ATTRIBUTE}"'
+    time: '$RECORDTIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    emr_id: $EMR_ID
+    _metadata:
+      _self:
+        symptom_name_cn: $SYMPTOM_NAME_CN
+
+V1.1.0/SURGERY_INFO:
+  surgery_start:
+    code: 'f"SURGERY//START//{$SURGERY_NAME}"'
+    time: '$SURGERY_BEGIN_TIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    visit_id: $VISIT_ID
+    oper_id: $OPER_ID
+    surgery_position: $SURGERY_POSITION
+  surgery_end:
+    code: 'f"SURGERY//END//{$SURGERY_NAME}"'
+    time: '$SURGERY_END_TIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    visit_id: $VISIT_ID
+    oper_id: $OPER_ID
+  anesthesia_start:
+    code: 'f"ANESTHESIA//START//{$ANES_METHOD}"'
+    time: '$ANES_START_TIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    visit_id: $VISIT_ID
+    oper_id: $OPER_ID
+  anesthesia_end:
+    code: 'f"ANESTHESIA//END//{$ANES_METHOD}"'
+    time: '$ANES_END_TIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    visit_id: $VISIT_ID
+    oper_id: $OPER_ID
+
+V1.1.0/SURGERY_VITAL_SIGNS:
+  # Intra-operative monitoring from the anaesthesia system, roughly one value every 5 minutes.
+  # Units are not recorded per row; `D_ITEMS.UNITNAME` carries one per item.
+  surgery_vital:
+    code: 'f"SURGERY_VITAL//{$ITEMID}"'
+    time: '$MONITOR_TIME::"%Y-%m-%d %H:%M:%S"'
+    hadm_id: $HADM_ID
+    visit_id: $VISIT_ID
+    oper_id: $OPER_ID
+    numeric_value: $VALUE
+    _metadata:
+      V1.1.0/D_ITEMS:
+        ITEMID: $ITEMID
+        description: $LABEL
+        label_cn: $LABEL_CN
+        unit: $UNITNAME
+
+sources:
+  # The raw release version. Reserved (never treated as a bucket), interpolatable into the entries
+  # below, and stamped by `meds-extract-run` into the output's `etl_metadata.dataset_version`.
+  dataset_version: "1.1.0"
+  dataset:
+    # PIC is credentialed: a PhysioNet account with a signed DUA for this project is required.
+    - type: physionet
+      base_url: https://physionet.org/files/picdb/${sources.dataset_version}
+      username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
+      password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+      # Only the full v1.1.0 table set is read; the root-level v1.0.0 tables, the SQL scripts and
+      # the `update_to_v1.1.0/` delta are skipped.
+      include:
+        - V1.1.0/*.csv

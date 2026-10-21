@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PICdb-MEDS"
+dynamic = ["version"]
+authors = [
+  { name="Robin van de Water", email="rpv2114@cumc.columbia.edu" },
+]
+description = "An ETL pipeline to extract the Paediatric Intensive Care (PIC) database into the MEDS format."
+readme = "README.md"
+# Mirrors MEDS-Extract 0.7's own interpreter range; a looser range here admits interpreters it
+# cannot be installed on.
+requires-python = ">=3.11.4,<3.14"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+# This package ships no Python: the whole ETL is `event_configs.yaml`, run by MEDS-Extract's own
+# `meds-extract-run`. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
+# stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
+# versions it fences.
+#
+# The floor is 0.7.0: this config uses `_self` metadata blocks, aggregated joins and regex
+# conditionals in `parent_codes`, none of which exist before 0.7.
+dependencies = [
+    "meds-extract[download]>=0.7.0,<0.8",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit~=3.8",
+    "ruff>=0.11,<1.0",
+    "pytest~=9.0",
+    "shfmt-py==3.12.0.2",
+]
+
+[tool.setuptools_scm]
+
+[project.entry-points."MEDS_extract.pipelines"]
+PICdb = "PICdb_MEDS:event_configs.yaml"
+
+[project.urls]
+Homepage = "https://github.com/rvandewater/PICdb_MEDS"
+Issues = "https://github.com/rvandewater/PICdb_MEDS/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RUF", # Ruff-specific rules
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "SIM108", # ternary operator suggestions
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
