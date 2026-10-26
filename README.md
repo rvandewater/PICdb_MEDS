@@ -142,9 +142,32 @@ uv run pre-commit run --all-files
 
 If you use this ETL, please cite the PIC database and its descriptor paper:
 
-- Li, H., Zeng, X., & Yu, G. (2020). *Paediatric Intensive Care database* (version 1.1.0). PhysioNet.
-    https://doi.org/10.13026/32x9-wv38
-- Zeng, X., Yu, G., Lu, Y. et al. PIC, a paediatric-specific intensive care database. *Sci Data* 7, 14
-    (2020). https://doi.org/10.1038/s41597-020-0355-4
+```bibtex
+@article{PhysioNet-picdb-1.1.0,
+  author = {Li, Haomin and Zeng, Xian and Yu, Gang},
+  title = {{Paediatric Intensive Care database}},
+  journal = {{PhysioNet}},
+  year = {2020},
+  month = nov,
+  note = {Version 1.1.0},
+  doi = {10.13026/32x9-wv38},
+  url = {https://doi.org/10.13026/32x9-wv38}
+}
+@article{zengPICPaediatricspecificIntensive2020,
+  title = {{{PIC}}, a Paediatric-Specific Intensive Care Database},
+  author = {Zeng, Xian and Yu, Gang and Lu, Yang and Tan, Linhua and Wu, Xiujing and Shi, Shanshan and Duan, Huilong and Shu, Qiang and Li, Haomin},
+  year = 2020,
+  month = jan,
+  journal = {Scientific Data},
+  volume = {7},
+  number = {1},
+  pages = {14},
+  publisher = {Nature Publishing Group},
+  issn = {2052-4463},
+  doi = {10.1038/s41597-020-0355-4},
+  copyright = {2020 The Author(s)},
+  langid = {english},
+}
+```
 
 See also [`CITATION.cff`](CITATION.cff).
