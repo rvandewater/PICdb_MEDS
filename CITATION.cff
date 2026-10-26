@@ -1,51 +1,19 @@
 # This CITATION.cff file was generated with cffinit.
 # Visit https://bit.ly/cffinit to generate yours today!
 
-cff-version: 1.2.0
-title: PICdb MEDS ETL
-message: >-
-  If you use this software, please cite it using the
-  metadata from this file, and cite the PIC database itself
-  (see references).
-type: software
+abstract: A MEDS-Extract powered ETL pipeline that converts the Paediatric Intensive
+  Care (PIC) database v1.1.0 from PhysioNet into the Medical Event Data Standard (MEDS).
 authors:
-  - given-names: Robin
-    family-names: van de Water
-    email: rpv2114@cumc.columbia.edu
-    orcid: 'https://orcid.org/0000-0002-2895-4872'
-repository-code: >-
-  https://github.com/rvandewater/PICdb_MEDS
-abstract: >
-  A MEDS-Extract powered ETL pipeline that converts the
-  Paediatric Intensive Care (PIC) database v1.1.0 from
-  PhysioNet into the Medical Event Data Standard (MEDS).
-license: MIT
-references:
-  - type: dataset
-    title: Paediatric Intensive Care database (version 1.1.0)
-    authors:
-      - family-names: Li
-        given-names: H.
-      - family-names: Zeng
-        given-names: X.
-      - family-names: Yu
-        given-names: G.
-    publisher:
-      name: PhysioNet
-    year: 2020
-    doi: 10.13026/32x9-wv38
-  - type: article
-    title: PIC, a paediatric-specific intensive care database
-    authors:
-      - family-names: Zeng
-        given-names: X.
-      - family-names: Yu
-        given-names: G.
-      - family-names: Lu
-        given-names: Y.
-      - name: et al.
-    journal: Scientific Data
-    volume: 7
-    start: 14
-    year: 2020
-    doi: 10.1038/s41597-020-0355-4
+- family-names: van de Water
+  given-names: Robin
+  orcid: 0000-0002-2895-4872
+cff-version: 1.2.0
+date-released: '2026-10-26'
+doi: 10.5281/zenodo.23676598
+license:
+- mit
+message: If you use this software, please cite it using the metadata from this file.
+repository-code: https://github.com/rvandewater/PICdb_MEDS/tree/0.0.2
+title: PICdb MEDS ETL
+type: software
+version: 0.0.2

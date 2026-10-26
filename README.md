@@ -12,7 +12,7 @@ CODECOV_TOKEN_PLACEHOLDER with the repo's Codecov badge token and zenodo.XXXXXXX
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/rvandewater/PICdb_MEDS#license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/rvandewater/PICdb_MEDS/pulls)
 [![contributors](https://img.shields.io/github/contributors/rvandewater/PICdb_MEDS.svg)](https://github.com/rvandewater/PICdb_MEDS/graphs/contributors)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23676598.svg)](https://doi.org/10.5281/zenodo.23676598)
 
 This pipeline extracts the [Paediatric Intensive Care (PIC) database v1.1.0](https://physionet.org/content/picdb/1.1.0/)
 from PhysioNet into the [MEDS format](https://medical-event-data-standard.github.io/). PIC holds 12,881
