@@ -1,10 +1,18 @@
 # PICdb MEDS Extraction ETL
 
-[![tests](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/tests.yaml/badge.svg)](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/tests.yaml)
+<!-- Placeholders until available: the PyPI badges resolve once PICdb-MEDS is published; replace
+CODECOV_TOKEN_PLACEHOLDER with the repo's Codecov badge token and zenodo.XXXXXXX with its Zenodo DOI. -->
+
+[![PyPI - Version](https://img.shields.io/pypi/v/PICdb-MEDS)](https://pypi.org/project/PICdb-MEDS/)
+[![codecov](https://codecov.io/gh/rvandewater/PICdb_MEDS/graph/badge.svg?token=CODECOV_TOKEN_PLACEHOLDER)](https://codecov.io/gh/rvandewater/PICdb_MEDS)
+[![tests](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/synthetic-etl.yaml/badge.svg)](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/synthetic-etl.yaml)
 [![code-quality](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/rvandewater/PICdb_MEDS/actions/workflows/code-quality-main.yaml)
-![python](https://img.shields.io/badge/-Python_3.11--3.13-blue?logo=python&logoColor=white)
-[![MEDS-Extract 0.7](https://img.shields.io/badge/MEDS--Extract-0.7-blue)](https://github.com/mmcdermott/MEDS_extract)
-[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](LICENSE)
+![python](https://img.shields.io/badge/python-%3E%3D3.11.4%2C%20%3C3.14-blue?logo=python&logoColor=white)
+![Static Badge](https://img.shields.io/badge/MEDS-0.4.1-blue)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/rvandewater/PICdb_MEDS#license)
+[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/rvandewater/PICdb_MEDS/pulls)
+[![contributors](https://img.shields.io/github/contributors/rvandewater/PICdb_MEDS.svg)](https://github.com/rvandewater/PICdb_MEDS/graphs/contributors)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 This pipeline extracts the [Paediatric Intensive Care (PIC) database v1.1.0](https://physionet.org/content/picdb/1.1.0/)
 from PhysioNet into the [MEDS format](https://medical-event-data-standard.github.io/). PIC holds 12,881
