@@ -40,7 +40,7 @@ When you run this, the program will:
     raw data somewhere durable and reuse it across runs.
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
-    [`src/PICdb_MEDS/event_configs.yaml`](src/PICdb_MEDS/event_configs.yaml).
+    [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
 
 If you already have the PhysioNet release on disk, skip the download and point `input_dir` at the
 release root, the directory that contains `V1.1.0/`:
@@ -62,7 +62,7 @@ Run `meds-extract-run --help` for every option.
 ## How this ETL is defined
 
 The package contains no Python. The whole ETL is one MESSY (MEDS-Extract Specification Syntax YAML)
-file, [`src/PICdb_MEDS/event_configs.yaml`](src/PICdb_MEDS/event_configs.yaml). It declares:
+file, [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml). It declares:
 
 - **`sources:`**: where the raw data lives (the PhysioNet release, restricted to `V1.1.0/*.csv`).
 - **`etl:`**: the dataset name and sharding options.
@@ -137,6 +137,13 @@ uv sync --group dev
 uv run pytest tests/ -v
 uv run pre-commit run --all-files
 ```
+
+## Releasing
+
+A release bumps the version in `pyproject.toml` with `uv version --bump`, commits it with the updated
+`CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
+release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
+full release commands, and recovering from a failed release.
 
 ## Citation
 

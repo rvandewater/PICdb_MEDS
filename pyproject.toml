@@ -4,8 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "PICdb-MEDS"
-# Bump with `uv version --bump patch|minor|major`, then tag the commit with the same version.
-version = "0.0.1"
+# The last released version. A release bumps it with `uv version --bump` and tags the commit with
+# the result (see RELEASING.md); CI refuses a tag that differs from it. 0.0.2 was tagged but never
+# published, so the next release is 0.0.3.
+version = "0.0.2"
 authors = [
   { name="Robin van de Water", email="rpv2114@cumc.columbia.edu" },
 ]
@@ -44,6 +46,11 @@ PICdb = "PICdb_MEDS:event_configs.yaml"
 [project.urls]
 Homepage = "https://github.com/rvandewater/PICdb_MEDS"
 Issues = "https://github.com/rvandewater/PICdb_MEDS/issues"
+
+[tool.setuptools.package-data]
+# The MESSY spec is the whole ETL. It is not a Python file, so it has to be listed, or installed
+# wheels lack it (PICdb-MEDS 0.0.1 on PyPI shipped without it).
+PICdb_MEDS = ["event_configs.yaml"]
 
 [tool.ruff]
 target-version = "py311"
