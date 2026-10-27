@@ -140,9 +140,10 @@ uv run pre-commit run --all-files
 
 ## Releasing
 
-Releases are git tags: the package version comes from the tag, and pushing one publishes to PyPI and
-creates the GitHub release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the version, the
-citation metadata to update first, and recovering from a failed release.
+A release bumps the version in `pyproject.toml` with `uv version --bump`, commits it with the updated
+`CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
+release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
+full release commands, and recovering from a failed release.
 
 ## Citation
 

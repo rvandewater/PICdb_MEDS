@@ -1,12 +1,13 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "PICdb-MEDS"
-# The version is the git tag (setuptools-scm): pushing tag `0.0.3` releases 0.0.3. Untagged
-# commits build as a dev version past the last tag, e.g. `0.0.4.dev2+g7a28785`.
-dynamic = ["version"]
+# The last released version. A release bumps it with `uv version --bump` and tags the commit with
+# the result (see RELEASING.md); CI refuses a tag that differs from it. 0.0.2 was tagged but never
+# published, so the next release is 0.0.3.
+version = "0.0.2"
 authors = [
   { name="Robin van de Water", email="rpv2114@cumc.columbia.edu" },
 ]
@@ -39,8 +40,6 @@ dev = [
     "shfmt-py==3.12.0.2",
 ]
 
-[tool.setuptools_scm]
-
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
 
@@ -49,8 +48,8 @@ Homepage = "https://github.com/rvandewater/PICdb_MEDS"
 Issues = "https://github.com/rvandewater/PICdb_MEDS/issues"
 
 [tool.setuptools.package-data]
-# The MESSY spec is the whole ETL. setuptools-scm also ships git-tracked files, but listing it keeps
-# the wheel correct even when built outside a git checkout.
+# The MESSY spec is the whole ETL. It is not a Python file, so it has to be listed, or installed
+# wheels lack it (PICdb-MEDS 0.0.1 on PyPI shipped without it).
 PICdb_MEDS = ["event_configs.yaml"]
 
 [tool.ruff]
