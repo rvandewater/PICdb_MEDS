@@ -97,12 +97,30 @@ identifying component (for example, no organism) produces no event for that comp
 
 ### Code metadata
 
-`metadata/codes.parquet` links codes to PIC's dictionary tables:
+`metadata/codes.parquet` describes every code except `MEDS_BIRTH` and `MEDS_DEATH`, and links codes to
+PIC's dictionary tables:
 
-- **`description`**: the English label from `D_ITEMS`, `D_LABITEMS` or `D_ICD_DIAGNOSES`.
-- **`parent_codes`**: `LOINC/…` for lab items with a well-formed LOINC code, and `ICD10/…` for
-    diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. PIC's own extended codes
-    (7+ characters) have no parent.
+- **`description`**: one English description per code, from one of two routes.
+    - **PIC dictionaries**: the English label from `D_LABITEMS` (labs), `D_ICD_DIAGNOSES` (diagnoses) or
+        `D_ITEMS` (chart, output and intra-operative vital items, organisms, antibiotics, and the specimen
+        IDs `D_ITEMS` lists). These are joined when the ETL runs; nothing from them is copied into this
+        repository.
+    - **Templates**: every other code gets a `_self` template in the event config. The template
+        restates the code's parts in words and names the PIC column they come from, for example
+        `ICU admission; first care unit: PICU, paediatric ICU (PIC ICUSTAYS.FIRST_CAREUNIT)`. The
+        wording follows the [PhysioNet PIC documentation](https://physionet.org/content/picdb/1.1.0/) and
+        the PIC paper ([Zeng et al. 2020](https://doi.org/10.1038/s41597-020-0355-4), CC BY 4.0). The paper
+        names the five ICUs and says what `INPUTEVENTS` holds. The PhysioNet page explains the `+`/`-`
+        symptom attribute and the "Other" ethnicity group. A specimen ID that `D_ITEMS` does not list
+        gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
+    - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.7 attaches no metadata to a
+        literal code, and the MEDS standard defines what these two mean.
+- **`parent_codes`**: OMOP-style `vocabulary_id/code` parents:
+    - `LOINC/…` for lab items with a well-formed LOINC code;
+    - `ICD10/…` for diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. PIC's own
+        extended codes (7+ characters) have no parent;
+    - `ICDO3/…` for diagnoses coded as ICD-O-3 morphology (`dddd/d`, for example `ICDO3/8000/3`). The
+        PIC paper notes that diagnoses use both ICD-10 and ICD-O-3.
 - **Chinese source terms**: kept in their own columns (`title_cn`, `label_cn`, `drug_name_cn`,
     `org_name_cn`, `spec_type_desc_cn`, `ab_name_cn`, `symptom_name_cn`). Codes are always built from the
     English or ID columns.
@@ -130,7 +148,10 @@ identifying component (for example, no organism) produces no event for that comp
 
 PIC has no open demo release. Instead, `tests/e2e_synthetic_test.py` writes a few fully synthetic rows
 with PIC's exact headers and layout, runs `meds-extract-run spec=PICdb` over them, and checks the
-events, times, values and code metadata it produces.
+events, times, values and code metadata it produces. That includes checking that the output validates
+against `meds.CodeMetadataSchema`. `tests/test_code_descriptions.py` checks the config itself: every
+event block declares exactly one description, a `_self` description reads only the code's own parts,
+and parents use OMOP vocabulary prefixes.
 
 ```bash
 uv sync --group dev
