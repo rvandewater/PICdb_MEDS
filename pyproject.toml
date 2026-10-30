@@ -41,6 +41,11 @@ dev = [
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
 
+# Ship the YAML files as package data: `event_configs.yaml` (the ETL) and `sumeds_rules.yaml` (the
+# suMEDS enrichment rules), so both resolve through `importlib.resources` from an installed wheel.
+[tool.setuptools.package-data]
+PICdb_MEDS = ["*.yaml"]
+
 [project.urls]
 Homepage = "https://github.com/rvandewater/PICdb_MEDS"
 Issues = "https://github.com/rvandewater/PICdb_MEDS/issues"

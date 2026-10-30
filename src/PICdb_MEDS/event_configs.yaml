@@ -20,6 +20,14 @@
 #   `metadata/codes.parquet`), never in the code itself.
 # - Null components of composite codes are coalesced to 'UNK' only where a missing value is still a
 #   meaningful event (e.g. a lab result without a unit); elsewhere the row is dropped.
+# - Every code gets a `description` in `metadata/codes.parquet` (see the README section "Code
+#   metadata"): from a PIC dictionary table where one covers the code, otherwise from a `_self`
+#   template that restates the code's components in words and names the PIC column they come from.
+#   Template wording follows the PIC documentation (https://physionet.org/content/picdb/1.1.0/) and
+#   the PIC descriptor paper (Zeng et al., Sci Data 2020, doi:10.1038/s41597-020-0355-4, CC BY 4.0).
+#   A `_self` template may reference only the code's own components, so each code gets exactly one
+#   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes, to which MEDS-Extract 0.7 attaches
+#   no metadata; their meaning is defined by the MEDS standard.
 
 etl:
   # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
@@ -41,6 +49,11 @@ V1.1.0/PATIENTS:
   gender:
     code: 'f"GENDER//{$GENDER}"'
     time: null
+    _metadata:
+      _self:
+        description: >-
+          f"Patient gender: {'male' if $GENDER == 'M' else 'female' if $GENDER == 'F' else $GENDER}
+          (PIC PATIENTS.GENDER)"
   dob:
     code: MEDS_BIRTH
     time: '$DOB::"%Y-%m-%d %H:%M:%S"'
@@ -58,14 +71,29 @@ V1.1.0/ADMISSIONS:
     code: 'f"HOSPITAL_ADMISSION//{$ADMISSION_DEPARTMENT}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Hospital admission; admitting department: {$ADMISSION_DEPARTMENT} (PIC
+          ADMISSIONS.ADMISSION_DEPARTMENT)"
   insurance:
     code: 'f"INSURANCE//{$INSURANCE}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Insurance recorded for the hospital admission: {$INSURANCE} (PIC ADMISSIONS.INSURANCE)"
   ethnicity:
     code: 'f"ETHNICITY//{$ETHNICITY}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
+    _metadata:
+      _self:
+        # PhysioNet documents that small minority groups were recoded to "Other" for de-identification.
+        description: >-
+          f"Patient ethnicity: {$ETHNICITY} (PIC ADMISSIONS.ETHNICITY; small minority groups are
+          recorded as Other)"
   admission_diagnosis:
     # The admitting diagnosis, in PIC's extended (Chinese national) ICD-10 coding.
     code: 'f"ADMISSION_DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
@@ -77,25 +105,54 @@ V1.1.0/ADMISSIONS:
         description: $TITLE
         title_cn: $TITLE_CN
         # Only codes that are valid 3- or 4-character WHO ICD-10 codes get a parent; PIC's extended
-        # 5+-character codes and its non-standard entries carry none.
+        # 5+-character codes and its non-standard entries carry none. ICD-O-3 morphology tags and
+        # same-dataset parents come from `sumeds_rules.yaml` (README, "Enriching code metadata with
+        # suMEDS").
         parent_codes: >-
           f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
   discharge:
     code: 'f"HOSPITAL_DISCHARGE//{$DISCHARGE_DEPARTMENT}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Hospital discharge; discharging department: {$DISCHARGE_DEPARTMENT} (PIC
+          ADMISSIONS.DISCHARGE_DEPARTMENT)"
 
 V1.1.0/ICUSTAYS:
+  # PIC has five ICUs: general (GICU), paediatric (PICU), surgical (SICU), cardiac (CICU) and neonatal
+  # (NICU) (Zeng et al. 2020, Methods and Table 2). Other unit values are restated as they are.
   icu_admission:
     code: 'f"ICU_ADMISSION//{$FIRST_CAREUNIT}"'
     time: '$INTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     icustay_id: $ICUSTAY_ID
+    _metadata:
+      _self:
+        description: >-
+          f"ICU admission; first care unit: {$FIRST_CAREUNIT}{
+          ', cardiac ICU' if $FIRST_CAREUNIT == 'CICU' else
+          ', general ICU' if $FIRST_CAREUNIT == 'GICU' else
+          ', neonatal ICU' if $FIRST_CAREUNIT == 'NICU' else
+          ', paediatric ICU' if $FIRST_CAREUNIT == 'PICU' else
+          ', surgical ICU' if $FIRST_CAREUNIT == 'SICU' else ''
+          } (PIC ICUSTAYS.FIRST_CAREUNIT)"
   icu_discharge:
     code: 'f"ICU_DISCHARGE//{$LAST_CAREUNIT}"'
     time: '$OUTTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     icustay_id: $ICUSTAY_ID
+    _metadata:
+      _self:
+        description: >-
+          f"ICU discharge; last care unit: {$LAST_CAREUNIT}{
+          ', cardiac ICU' if $LAST_CAREUNIT == 'CICU' else
+          ', general ICU' if $LAST_CAREUNIT == 'GICU' else
+          ', neonatal ICU' if $LAST_CAREUNIT == 'NICU' else
+          ', paediatric ICU' if $LAST_CAREUNIT == 'PICU' else
+          ', surgical ICU' if $LAST_CAREUNIT == 'SICU' else ''
+          } (PIC ICUSTAYS.LAST_CAREUNIT)"
 
 V1.1.0/DIAGNOSES_ICD:
   # Diagnoses carry no timestamp of their own; they are placed at hospital discharge.
@@ -154,13 +211,19 @@ V1.1.0/CHARTEVENTS:
         category: $CATEGORY
 
 V1.1.0/INPUTEVENTS:
-  # PIC's input events record fluid intake amounts only; there is no item identifier.
+  # PIC's input events record fluid intake amounts only; there is no item identifier. The paper
+  # describes the table as fluid input calculated every morning for each ICU patient.
   fluid_input:
     code: f"FLUID_INPUT//{$AMOUNTUOM ?? 'UNK'}"
     time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     icustay_id: $ICUSTAY_ID
     numeric_value: $AMOUNT
+    _metadata:
+      _self:
+        description: >-
+          f"Fluid input amount in {$AMOUNTUOM ?? 'UNK'}, calculated each morning for ICU patients; the
+          table has no item identifier (PIC INPUTEVENTS.AMOUNT, AMOUNTUOM)"
 
 V1.1.0/OUTPUTEVENTS:
   output:
@@ -189,6 +252,9 @@ V1.1.0/PRESCRIPTIONS:
     prod_strength: $PROD_STRENGTH
     _metadata:
       _self:
+        description: >-
+          f"Prescription start: {$DRUG_NAME_EN}; dose unit {$DOSE_UNIT_RX ?? 'UNK'} (PIC
+          PRESCRIPTIONS.DRUG_NAME_EN, DOSE_UNIT_RX)"
         drug_name_cn: $DRUG_NAME
         drug_name_generic: $DRUG_NAME_GENERIC
   medication_end:
@@ -198,6 +264,8 @@ V1.1.0/PRESCRIPTIONS:
     icustay_id: $ICUSTAY_ID
     _metadata:
       _self:
+        description: >-
+          f"Prescription end: {$DRUG_NAME_EN} (PIC PRESCRIPTIONS.DRUG_NAME_EN)"
         drug_name_cn: $DRUG_NAME
 
 V1.1.0/MICROBIOLOGYEVENTS:
@@ -207,15 +275,26 @@ V1.1.0/MICROBIOLOGYEVENTS:
   # Item IDs and their Chinese names are many-to-many in the raw data, so codes use the item IDs
   # (labelled in English through `D_ITEMS`, which covers every organism and antibiotic ID but only
   # some specimen IDs) and the Chinese names are kept as code metadata.
+  #
+  # The specimen label is joined onto the rows (`ITEMID` is unique in `D_ITEMS`, so the join adds no
+  # rows) rather than attached through a `D_ITEMS` metadata block, so that specimen IDs missing from
+  # `D_ITEMS` can fall back to a description in the same `_self` expression; a second description
+  # source would be concatenated onto the `D_ITEMS` label.
+  _table:
+    join:
+      V1.1.0/D_ITEMS:
+        left_on: SPEC_ITEMID
+        right_on: ITEMID
+        cols: [LABEL]
   specimen:
     code: 'f"MICROBIOLOGY//SPECIMEN//{$SPEC_ITEMID}"'
     time: '$CHARTTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     _metadata:
-      V1.1.0/D_ITEMS:
-        SPEC_ITEMID: $ITEMID
-        description: $LABEL
       _self:
+        description: >-
+          $LABEL ?? f"Microbiology specimen, PIC item {$SPEC_ITEMID}, which has no English label in
+          D_ITEMS; the Chinese specimen name is in spec_type_desc_cn (PIC MICROBIOLOGYEVENTS.SPEC_ITEMID)"
         spec_type_desc_cn: $SPEC_TYPE_DESC
   organism:
     code: 'f"MICROBIOLOGY//ORGANISM//{$ORG_ITEMID}"'
@@ -251,6 +330,11 @@ V1.1.0/OR_EXAM_REPORTS:
     time: coalesce($EXAMTIME::?"%Y-%m-%d %H:%M:%S", $REPORTTIME::?"%Y-%m-%d %H:%M:%S")
     hadm_id: $HADM_ID
     exam_part: $EXAM_PART_NAME
+    _metadata:
+      _self:
+        description: >-
+          f"Examination performed (report content not released): type {$EXAM_ITEM_TYPE_NAME}, item
+          {$EXAM_ITEM_NAME} (PIC OR_EXAM_REPORTS.EXAM_ITEM_TYPE_NAME, EXAM_ITEM_NAME)"
 
 V1.1.0/EMR_SYMPTOMS:
   # NLP-extracted from progress notes and discharge summaries; the attribute is "+" (present) or
@@ -262,6 +346,10 @@ V1.1.0/EMR_SYMPTOMS:
     emr_id: $EMR_ID
     _metadata:
       _self:
+        description: >-
+          f"Symptom {$SYMPTOM_NAME}, {'present (+)' if $SYMPTOM_ATTRIBUTE == '+' else 'absent (-)' if
+          $SYMPTOM_ATTRIBUTE == '-' else $SYMPTOM_ATTRIBUTE}, extracted by NLP from progress notes and
+          discharge summaries (PIC EMR_SYMPTOMS.SYMPTOM_NAME, SYMPTOM_ATTRIBUTE)"
         symptom_name_cn: $SYMPTOM_NAME_CN
 
 V1.1.0/SURGERY_INFO:
@@ -272,24 +360,40 @@ V1.1.0/SURGERY_INFO:
     visit_id: $VISIT_ID
     oper_id: $OPER_ID
     surgery_position: $SURGERY_POSITION
+    _metadata:
+      _self:
+        description: >-
+          f"Surgery start: {$SURGERY_NAME} (PIC SURGERY_INFO.SURGERY_NAME, SURGERY_BEGIN_TIME)"
   surgery_end:
     code: 'f"SURGERY//END//{$SURGERY_NAME}"'
     time: '$SURGERY_END_TIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     visit_id: $VISIT_ID
     oper_id: $OPER_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Surgery end: {$SURGERY_NAME} (PIC SURGERY_INFO.SURGERY_NAME, SURGERY_END_TIME)"
   anesthesia_start:
     code: 'f"ANESTHESIA//START//{$ANES_METHOD}"'
     time: '$ANES_START_TIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     visit_id: $VISIT_ID
     oper_id: $OPER_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Anesthesia start; method: {$ANES_METHOD} (PIC SURGERY_INFO.ANES_METHOD, ANES_START_TIME)"
   anesthesia_end:
     code: 'f"ANESTHESIA//END//{$ANES_METHOD}"'
     time: '$ANES_END_TIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     visit_id: $VISIT_ID
     oper_id: $OPER_ID
+    _metadata:
+      _self:
+        description: >-
+          f"Anesthesia end; method: {$ANES_METHOD} (PIC SURGERY_INFO.ANES_METHOD, ANES_END_TIME)"
 
 V1.1.0/SURGERY_VITAL_SIGNS:
   # Intra-operative monitoring from the anaesthesia system, roughly one value every 5 minutes.
