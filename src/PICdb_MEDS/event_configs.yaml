@@ -104,12 +104,12 @@ V1.1.0/ADMISSIONS:
         ICD10_CODE_CN: $ICD10_CODE_CN
         description: $TITLE
         title_cn: $TITLE_CN
-        # Valid 3- or 4-character WHO ICD-10 codes get an `ICD10/` parent. PIC also codes neoplasm
-        # morphology in ICD-O-3 (Zeng et al. 2020, Table 1); those `dddd/d` codes get an `ICDO3/` parent,
-        # the OMOP ICDO3 histology code format. PIC's extended 5+-character codes carry none.
+        # Only codes that are valid 3- or 4-character WHO ICD-10 codes get a parent; PIC's extended
+        # 5+-character codes and its non-standard entries carry none. ICD-O-3 morphology tags and
+        # same-dataset parents come from `sumeds_rules.yaml` (README, "Enriching code metadata with
+        # suMEDS").
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE else
-          f"ICDO3/{$ICD10_CODE}" if /^[89][0-9]{3}\/[0-9]$/ in $ICD10_CODE
+          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
   discharge:
     code: 'f"HOSPITAL_DISCHARGE//{$DISCHARGE_DEPARTMENT}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
@@ -173,8 +173,7 @@ V1.1.0/DIAGNOSES_ICD:
         description: $TITLE
         title_cn: $TITLE_CN
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE else
-          f"ICDO3/{$ICD10_CODE}" if /^[89][0-9]{3}\/[0-9]$/ in $ICD10_CODE
+          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
 
 V1.1.0/LABEVENTS:
   lab:

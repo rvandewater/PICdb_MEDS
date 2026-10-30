@@ -115,16 +115,39 @@ PIC's dictionary tables:
         gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
     - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.7 attaches no metadata to a
         literal code, and the MEDS standard defines what these two mean.
-- **`parent_codes`**: OMOP-style `vocabulary_id/code` parents:
-    - `LOINC/…` for lab items with a well-formed LOINC code;
-    - `ICD10/…` for diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. PIC's own
-        extended codes (7+ characters) have no parent;
-    - `ICDO3/…` for diagnoses coded as ICD-O-3 morphology (`dddd/d`, for example `ICDO3/8000/3`). The
-        PIC paper notes that diagnoses use both ICD-10 and ICD-O-3.
+- **`parent_codes`**: `LOINC/…` for lab items with a well-formed LOINC code, and `ICD10/…` for
+    diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. Both come from PIC's own
+    dictionaries (`D_LABITEMS.LOINC_CODE`, `D_ICD_DIAGNOSES.ICD10_CODE`). PIC's own extended codes
+    (7+ characters) have no parent. Other vocabularies and same-dataset parents are added by suMEDS (next
+    section).
 - **Chinese source terms**: kept in their own columns (`title_cn`, `label_cn`, `drug_name_cn`,
     `org_name_cn`, `spec_type_desc_cn`, `ab_name_cn`, `symptom_name_cn`). Codes are always built from the
     English or ID columns.
 - **Extra dictionary fields**: `fluid`, `category` and `unit`.
+
+### Enriching code metadata with suMEDS
+
+External-ontology work lives in [suMEDS](https://github.com/rvandewater/SumMEDS), not in this ETL. The
+package ships the rules for it, `src/PICdb_MEDS/sumeds_rules.yaml` (also installed as package data), which
+suMEDS applies to a finished build (this needs a suMEDS version with `--rules` support):
+
+```bash
+suMEDS-enrich "$MEDS_OUTPUT_DIR/metadata/codes.parquet" -o codes-enriched.parquet \
+	--rules src/PICdb_MEDS/sumeds_rules.yaml
+```
+
+The rules add, as `VOCABULARY//CODE` parents and same-dataset codes:
+
+- **ICD-O-3 morphology** (`picdb-icdo3-morphology`): diagnoses coded in the Chinese edition of ICD-O-3
+    (`M80000/3`; the PIC paper notes that diagnoses use both ICD-10 and ICD-O-3) get the OMOP ICDO3
+    histology code (`ICDO3//8000/3`). suMEDS's versioned ontology data (sumeds-ontologies, pinned
+    release) has no ICD-O-3 pack, so this is a tag that is validated only when Athena is configured
+    (`--athena-csv`).
+- **Same-dataset parents** (`picdb-diagnosis-prefix`, `picdb-admission-diagnosis-prefix`): a diagnosis
+    code gets the nearest shorter code of the same family that exists in the build, skipping dots, for
+    example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`.
+
+The ETL alone writes no `ICDO3` parents and no same-dataset parents; run suMEDS to get them.
 
 ### Data notes
 
@@ -151,7 +174,9 @@ with PIC's exact headers and layout, runs `meds-extract-run spec=PICdb` over the
 events, times, values and code metadata it produces. That includes checking that the output validates
 against `meds.CodeMetadataSchema`. `tests/test_code_descriptions.py` checks the config itself: every
 event block declares exactly one description, a `_self` description reads only the code's own parts,
-and parents use OMOP vocabulary prefixes.
+and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` checks that `sumeds_rules.yaml`
+is a well-formed `sumeds-rules/0.1` file and applies each rule to synthetic codes built from the code
+templates in the event config.
 
 ```bash
 uv sync --group dev

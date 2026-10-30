@@ -12,8 +12,9 @@ import yaml
 CONFIG_FP = Path(__file__).parents[1] / "src" / "PICdb_MEDS" / "event_configs.yaml"
 # MEDS-reserved literal codes. MEDS-Extract 0.7 attaches no metadata to a code without components.
 MEDS_LITERALS = {"MEDS_BIRTH", "MEDS_DEATH"}
-# OMOP `vocabulary_id`s that `parent_codes` may point into.
-PARENT_VOCABULARIES = {"ICD10", "ICDO3", "LOINC"}
+# OMOP `vocabulary_id`s that `parent_codes` may point into: codes PIC's own dictionaries carry. Other
+# vocabularies (ICD-O-3 morphology) are tagged by suMEDS through `sumeds_rules.yaml`.
+PARENT_VOCABULARIES = {"ICD10", "LOINC"}
 COLUMN = re.compile(r"\$(\w+)")
 
 

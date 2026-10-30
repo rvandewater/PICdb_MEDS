@@ -691,8 +691,10 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["MEDICATION//START//Vancomycin Injection//mg"]["drug_name_cn"] == ["万古霉素"]
     assert by_code["SYMPTOM//fever//+"]["symptom_name_cn"] == ["发热"]
 
-    # ICD-O-3 morphology codes get an ICDO3 parent.
-    assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"] == ["ICDO3/8000/3"]
+    # An ICD-O-3 morphology code gets no parent from the ETL; suMEDS tags it through
+    # `sumeds_rules.yaml` (see `test_sumeds_rules.py`).
+    assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
+    assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
 
 
 def test_code_descriptions(codes: pl.DataFrame):
