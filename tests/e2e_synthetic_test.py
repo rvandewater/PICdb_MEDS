@@ -18,7 +18,9 @@ import sysconfig
 from pathlib import Path
 
 import polars as pl
+import pyarrow.parquet as pq
 import pytest
+from meds import CodeMetadataSchema
 
 SPEC = "PICdb"
 RAW_RELEASE = "1.1.0"
@@ -169,6 +171,15 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE_CN": "Q21.000",
             "Diag_Category": "Primary",
         },
+        # A diagnosis whose mapped code is an ICD-O-3 morphology code.
+        {
+            "ROW_ID": "4",
+            "SUBJECT_ID": "3",
+            "HADM_ID": "301",
+            "SEQ_NUM": "2",
+            "ICD10_CODE_CN": "M80000/3",
+            "Diag_Category": "Other",
+        },
     ],
     "D_ICD_DIAGNOSES": [
         {
@@ -191,6 +202,13 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE": "Q21.0",
             "TITLE_CN": "室间隔缺损",
             "TITLE": "Ventricular septal defect",
+        },
+        {
+            "ROW_ID": "4",
+            "ICD10_CODE_CN": "M80000/3",
+            "ICD10_CODE": "8000/3",
+            "TITLE_CN": "测试",
+            "TITLE": "Synthetic neoplasm entry",
         },
     ],
     "D_ITEMS": [
@@ -411,6 +429,23 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "CHARTTIME": "2101-05-06 15:00:00",
             "SPEC_ITEMID": "B1",
             "SPEC_TYPE_DESC": "血",
+            "ORG_ITEMID": "",
+            "ORG_NAME": "",
+            "AB_ITEMID": "",
+            "AB_NAME": "",
+            "DILUTION_TEXT": "",
+            "DILUTION_COMPARISON": "",
+            "DILUTION_VALUE": "",
+            "INTERPRETATION": "",
+        },
+        # A specimen ID that `D_ITEMS` does not list.
+        {
+            "ROW_ID": "3",
+            "SUBJECT_ID": "1",
+            "HADM_ID": "101",
+            "CHARTTIME": "2081-03-02 15:00:00",
+            "SPEC_ITEMID": "S900",
+            "SPEC_TYPE_DESC": "痰",
             "ORG_ITEMID": "",
             "ORG_NAME": "",
             "AB_ITEMID": "",
@@ -655,3 +690,38 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["MICROBIOLOGY//SUSCEPTIBILITY//A1//S"]["description"] == "Vancomycin"
     assert by_code["MEDICATION//START//Vancomycin Injection//mg"]["drug_name_cn"] == ["万古霉素"]
     assert by_code["SYMPTOM//fever//+"]["symptom_name_cn"] == ["发热"]
+
+    # An ICD-O-3 morphology code gets no parent from the ETL; suMEDS tags it through
+    # `sumeds_rules.yaml` (see `test_sumeds_rules.py`).
+    assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
+    assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
+
+
+def test_code_descriptions(codes: pl.DataFrame):
+    by_code = dict(zip(codes["code"], codes["description"], strict=True))
+
+    # Every code is described except the MEDS-reserved literal codes, to which MEDS-Extract 0.7
+    # attaches no metadata.
+    assert sorted(code for code, desc in by_code.items() if desc is None) == ["MEDS_BIRTH", "MEDS_DEATH"]
+
+    assert by_code["GENDER//F"] == "Patient gender: female (PIC PATIENTS.GENDER)"
+    assert by_code["ICU_ADMISSION//PICU"] == (
+        "ICU admission; first care unit: PICU, paediatric ICU (PIC ICUSTAYS.FIRST_CAREUNIT)"
+    )
+    assert by_code["HOSPITAL_DISCHARGE//General Surgery"] == (
+        "Hospital discharge; discharging department: General Surgery (PIC ADMISSIONS.DISCHARGE_DEPARTMENT)"
+    )
+    assert by_code["MEDICATION//START//Vitamin K1 Injection//UNK"].startswith(
+        "Prescription start: Vitamin K1 Injection; dose unit UNK ("
+    )
+    assert by_code["SYMPTOM//cough//-"].startswith("Symptom cough, absent (-), extracted by NLP")
+    assert by_code["SURGERY//START//VSD repair"].startswith("Surgery start: VSD repair (")
+    # A specimen ID listed in `D_ITEMS` keeps exactly its label; an unlisted one gets a fallback.
+    assert by_code["MICROBIOLOGY//SPECIMEN//B1"] == "Blood"
+    assert by_code["MICROBIOLOGY//SPECIMEN//S900"].startswith(
+        "Microbiology specimen, PIC item S900, which has"
+    )
+
+
+def test_codes_parquet_is_valid_meds_code_metadata(cohort: Path):
+    CodeMetadataSchema.validate(pq.read_table(cohort / "metadata" / "codes.parquet"))
