@@ -129,7 +129,7 @@ PIC's dictionary tables:
 
 External-ontology work lives in [suMEDS](https://github.com/rvandewater/SumMEDS), not in this ETL. The
 package ships the rules for it, `src/PICdb_MEDS/sumeds_rules.yaml` (also installed as package data), which
-suMEDS applies to a finished build (this needs a suMEDS version with `--rules` support):
+suMEDS applies to a finished build (this needs suMEDS 0.4 or later, `pip install "sumeds>=0.4"`):
 
 ```bash
 suMEDS-enrich "$MEDS_OUTPUT_DIR/metadata/codes.parquet" -o codes-enriched.parquet \
@@ -174,9 +174,9 @@ with PIC's exact headers and layout, runs `meds-extract-run spec=PICdb` over the
 events, times, values and code metadata it produces. That includes checking that the output validates
 against `meds.CodeMetadataSchema`. `tests/test_code_descriptions.py` checks the config itself: every
 event block declares exactly one description, a `_self` description reads only the code's own parts,
-and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` checks that `sumeds_rules.yaml`
-is a well-formed `sumeds-rules/0.1` file and applies each rule to synthetic codes built from the code
-templates in the event config.
+and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` loads `sumeds_rules.yaml` with
+suMEDS, which rejects a malformed rule, and applies each rule through suMEDS to synthetic codes built
+from the code templates in the event config.
 
 ```bash
 uv sync --group dev
