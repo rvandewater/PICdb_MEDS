@@ -1,0 +1,706 @@
+{
+  "code_metadata": {
+    "description_length": {
+      "mean": 80.6621,
+      "n": 9871,
+      "quantiles": {
+        "p1": 5.0,
+        "p25": 27.0,
+        "p5": 10.0,
+        "p50": 85.0,
+        "p75": 114.0,
+        "p95": 174.0,
+        "p99": 270.0
+      },
+      "std": 57.3202
+    },
+    "n_codes": 9876,
+    "n_data_codes_missing_from_metadata": 0,
+    "n_metadata_codes_absent_from_data": 0,
+    "n_with_description": 9871,
+    "n_with_parent_codes": 2650,
+    "ontology": {
+      "by_vocabulary": {
+        "ICD10": {
+          "keys_digest": "sha256:36ed20e045001873f89be549c786538335af8a4e442319a2f8491499596db99f",
+          "n_child_codes": 2522,
+          "n_distinct_keys": 1156,
+          "n_measurements": 32837,
+          "n_subjects": 12711,
+          "recognized": true
+        },
+        "LOINC": {
+          "keys_digest": "sha256:a61722b8c1c86e60c5deacae9ffee94de9354c84bd2a0287cd9e907eaaeb72db",
+          "n_child_codes": 128,
+          "n_distinct_keys": 60,
+          "n_measurements": 4402143,
+          "n_subjects": 12040,
+          "numeric": {
+            "mean": 659535.0,
+            "n_finite": 4346286,
+            "std": 362419000.0
+          },
+          "recognized": true
+        }
+      },
+      "coverage": {
+        "frac_measurements_mapped": 0.269729,
+        "frac_observed_codes_with_parents": 0.268327,
+        "n_measurements_mapped": 4434980,
+        "n_measurements_unmapped": 12007398,
+        "n_observed_codes": 9876,
+        "n_observed_codes_with_parents": 2650,
+        "n_observed_codes_without_parents": 7226
+      },
+      "n_codes_in_multiple_vocabularies": 0,
+      "n_codes_with_parents": 2650,
+      "n_distinct_parents": 1216,
+      "n_parent_links": 2650,
+      "n_parents_without_vocabulary": 0,
+      "n_vocabularies": 2,
+      "n_vocabularies_recognized": 2,
+      "parents_per_code": {
+        "mean": 0.268327,
+        "n": 9876,
+        "quantiles": {
+          "p1": 0.0,
+          "p25": 0.0,
+          "p5": 0.0,
+          "p50": 0.0,
+          "p75": 1.0,
+          "p95": 1.0,
+          "p99": 1.0
+        },
+        "std": 0.443111
+      },
+      "present": true,
+      "vocabularies_per_code": {
+        "mean": 0.268327,
+        "n": 9876,
+        "quantiles": {
+          "p1": 0.0,
+          "p25": 0.0,
+          "p5": 0.0,
+          "p50": 0.0,
+          "p75": 1.0,
+          "p95": 1.0,
+          "p99": 1.0
+        },
+        "std": 0.443111
+      }
+    },
+    "present": true,
+    "vocabulary_digest": "sha256:52aa0e66e0d43ec0584349e46f08b4344fb9920cda8d39fb97c49d3ad645d5ca"
+  },
+  "codes": {
+    "concentration": {
+      "frac_measurements_in_top_10": 0.176387,
+      "frac_measurements_in_top_100": 0.731467,
+      "frac_measurements_in_top_1000": 0.98448,
+      "n_codes_covering_50pct": 43,
+      "n_codes_covering_90pct": 270,
+      "n_codes_covering_99pct": 1268
+    },
+    "digests": {
+      "alphabetical": "sha256:52aa0e66e0d43ec0584349e46f08b4344fb9920cda8d39fb97c49d3ad645d5ca",
+      "by_measurement_frequency": "sha256:cbb3484976cb5c0827944dd8c2380e3db99ba86911232b3e5492e49665bc5d3d",
+      "by_subject_frequency": "sha256:3629c3c019b6dba0b27e2c14733236759eeac7d3f5d15ac6f8c105619d2f08f5",
+      "numeric_moments": {
+        "digest": "sha256:5ed99d9a9fc83cc1f67787b841dede70b18450018bf1fd2fae6a0f2ac30fd72e",
+        "n_codes": 1102
+      },
+      "thresholded": {
+        "100": {
+          "alphabetical": "sha256:35f990170e6f28a6cefb531cfc35d89e8ea926623ccffa4f819581a5fd9b0d0e",
+          "by_measurement_frequency": "sha256:32202d6692fbd62aa50723ecbd7225c0298a423299717d6bb1884d7473e2debb",
+          "by_subject_frequency": "sha256:683c19a66b552198741fbb456d992c07875c4798d70bdac1c15a0549f10cc749",
+          "n_codes": 1490
+        },
+        "1000": {
+          "alphabetical": "sha256:b89b115907ed34538583b226071cf4f7448fb6710f745b138d7001e6429fa599",
+          "by_measurement_frequency": "sha256:09d5271889771129c054d00b6ddefb34c92521c5b9fd5f16ebe4e0224b114d49",
+          "by_subject_frequency": "sha256:6d23e08ea2ce46eb6412ba77738291e67c90e8a1152390546d4dcccc3c0f233f",
+          "n_codes": 543
+        },
+        "20": {
+          "alphabetical": "sha256:abd469bdd18ceb3e8019f73e2b6734c345ee54415c5963928c80b2795d854ff5",
+          "by_measurement_frequency": "sha256:0a592cd77940f5088e5b5ece84f632013132139e6598bb579341c2917b87da4e",
+          "by_subject_frequency": "sha256:0b7a8f1d76e393282efd54539f1204458256b918b103aa2f1e33c4445080c483",
+          "n_codes": 2590
+        }
+      }
+    },
+    "n_codes_below_min_cell_size": 7286,
+    "n_unique_codes": 9876,
+    "occurrence": {
+      "n_measurements": {
+        "mean": 1664.88,
+        "n": 9876,
+        "quantiles": {
+          "p1": 1.0,
+          "p25": 1.0,
+          "p5": 1.0,
+          "p50": 3.0,
+          "p75": 35.0,
+          "p95": 2401.0,
+          "p99": 38073.0
+        },
+        "std": 15072.9
+      },
+      "n_subjects": {
+        "mean": 302.834,
+        "n": 9876,
+        "quantiles": {
+          "p1": 1.0,
+          "p25": 1.0,
+          "p5": 1.0,
+          "p50": 3.0,
+          "p75": 23.0,
+          "p95": 1199.5,
+          "p99": 9991.0
+        },
+        "std": 1390.13
+      }
+    }
+  },
+  "config": {
+    "code_metadata_only_digests": true,
+    "dataset_digest": "files",
+    "digest_subject_thresholds": [
+      20,
+      100,
+      1000
+    ],
+    "emit_ontology_keys": false,
+    "min_cell_size": 20,
+    "min_numeric_cell_size": 20,
+    "moment_digest_sig_digits": 6,
+    "numeric_detail": "moments",
+    "quantiles": [
+      0.01,
+      0.05,
+      0.25,
+      0.5,
+      0.75,
+      0.95,
+      0.99
+    ]
+  },
+  "counts": {
+    "n_events": 2778453,
+    "n_measurements": 16442378,
+    "n_static_measurements": 12881,
+    "n_subjects": 12881,
+    "n_subjects_with_birth": 12881,
+    "n_subjects_with_death": 971,
+    "n_subjects_with_static": 12881,
+    "n_unique_codes": 9876,
+    "numeric": {
+      "mean": 637438.0,
+      "n_finite": 14714482,
+      "n_infinite": 0,
+      "n_nan": 0,
+      "n_negative": 220251,
+      "n_present": 14714482,
+      "n_zero": 314272,
+      "std": 987591000.0
+    },
+    "quality": {
+      "n_empty_code": 0,
+      "n_null_code": 0,
+      "n_null_subject_id": 0
+    }
+  },
+  "dataset": {
+    "created_at": "2026-11-04T15:19:37.496900+00:00",
+    "dataset_name": "PICdb",
+    "dataset_version": "1.1.0:0.0.3",
+    "etl_name": "MEDS_transforms",
+    "etl_version": "0.7.0",
+    "meds_version": "0.4.1",
+    "present": true
+  },
+  "dataset_digest": {
+    "by_file": {
+      "data/held_out/0.parquet": "sha256:8ac318aaeaad12d65c3b9a3fa9c55adb1bcb29eec0e9105bf77f1a6d62d3f7fa",
+      "data/held_out/1.parquet": "sha256:b119180c133b2b7a9ddae3809384bc866981d14e6934273e408236609d0f13c7",
+      "data/train/0.parquet": "sha256:7f8f116bbb9f75e803849cf148da5a3a0d780001e80a61ccd29db70b767011c8",
+      "data/train/1.parquet": "sha256:f70a0999c451d1d3f98e95b8c162d079311f5519933648159e0932fcb7a65864",
+      "data/train/10.parquet": "sha256:f092268be4a8c65ec8d63c8fae2a79cf6a44b55b1e311b190ba71b30412bf7b8",
+      "data/train/2.parquet": "sha256:91960821206f032737adcc91003abf5ee7f9e408f37be74b3b58af841578133f",
+      "data/train/3.parquet": "sha256:f13c0adee51f313c44d9c881c07e38bf1ee21a0da5d77cb5d5f4db273172cd57",
+      "data/train/4.parquet": "sha256:72cf3d9ba381c2088aa49e4a836bf6f5c4a24bda590488ef36cd4a4680e8f15d",
+      "data/train/5.parquet": "sha256:79d2f5354b2ccce772d7e7de3ea3521fa69d85a87d0d3804b33908ddaf5fed26",
+      "data/train/6.parquet": "sha256:5ff993eed1e410972e62c09d5d9809b4519273e5d42a38fc92030d3bb8c904bc",
+      "data/train/7.parquet": "sha256:82b167f24cd138af1f2036e3506fe35329e3e613bf397c128f0ccbf663433f15",
+      "data/train/8.parquet": "sha256:3e6af52ffd6c2de8d8ec1c070da5e14973ed9fbc6e63dee99c0c0c1ac6249025",
+      "data/train/9.parquet": "sha256:bade566b54f1a1707cc0fd68014c5ee82c9438fc23647ed60b72adabb41aeeeb",
+      "data/tuning/0.parquet": "sha256:c47f748784ee63090d0f06b527448114cd43385646f485e52c8b5cd131d85033",
+      "data/tuning/1.parquet": "sha256:d19947dc0aa71a8808c92a05060ebafc844476e97381f097706ecad81c71ec71",
+      "metadata/codes.parquet": "sha256:ecbbd1144444b2babc271c34b17e6d0a07c3d903f5cfbadb355af7eac8ba6413",
+      "metadata/dataset.json": "sha256:a61dda83844b636200ae58e19366270fcc9f367eb14d7e5335702407b9337e36",
+      "metadata/subject_splits.parquet": "sha256:65f53b91c1ea26668771643184cc1f0b2cc92afe40f3d211924505653e81bc28"
+    },
+    "code_metadata": "sha256:b980248c9b1cccb36e591e278a5d69649e14768775f05efe246c6cf18bad1ca8",
+    "combined": "sha256:bbe65ee54b0e9ca0219f4c5afa17558995a034ef044cc45bb932d156eb89caca",
+    "data": {
+      "digest": "sha256:43f8c0dfa7761182963fd0b41ab682f5854c55781ae5d438044b57642e7e17e5",
+      "n_files": 15
+    },
+    "dataset_metadata": "sha256:c657210c9655b7a21a39456119535442312c8a4f2d323b9561efcf4c9894bab1",
+    "method": "files",
+    "n_files": 18,
+    "subject_splits": "sha256:c5d56dc0cf40b5a3df7b90cdb042c9ca667d62b0d8db66647526cf237fdb6132"
+  },
+  "extracted_at": "2026-11-04T15:27:56.798510",
+  "layout": {
+    "code_metadata_columns": {
+      "ab_name_cn": "List(String)",
+      "category": "List(String)",
+      "code": "String",
+      "code_template": "String",
+      "description": "String",
+      "drug_name_cn": "List(String)",
+      "drug_name_generic": "List(String)",
+      "fluid": "List(String)",
+      "label_cn": "List(String)",
+      "org_name_cn": "List(String)",
+      "parent_codes": "List(String)",
+      "spec_type_desc_cn": "List(String)",
+      "symptom_name_cn": "List(String)",
+      "title_cn": "List(String)",
+      "unit": "List(String)"
+    },
+    "column_dtype_conflicts": {},
+    "column_presence": {
+      "code": 15,
+      "diag_category": 15,
+      "dilution_comparison": 15,
+      "drug_form": 15,
+      "emr_id": 15,
+      "exam_part": 15,
+      "flag": 15,
+      "hadm_id": 15,
+      "icustay_id": 15,
+      "numeric_value": 15,
+      "oper_id": 15,
+      "org_itemid": 15,
+      "prod_strength": 15,
+      "seq_num": 15,
+      "source_block": 15,
+      "spec_itemid": 15,
+      "subject_id": 15,
+      "surgery_position": 15,
+      "text_value": 15,
+      "time": 15,
+      "visit_id": 15
+    },
+    "data_columns": {
+      "code": "String",
+      "diag_category": "String",
+      "dilution_comparison": "String",
+      "drug_form": "String",
+      "emr_id": "Int64",
+      "exam_part": "String",
+      "flag": "String",
+      "hadm_id": "Int64",
+      "icustay_id": "Int64",
+      "numeric_value": "Float32",
+      "oper_id": "Int64",
+      "org_itemid": "String",
+      "prod_strength": "String",
+      "seq_num": "Int64",
+      "source_block": "String",
+      "spec_itemid": "String",
+      "subject_id": "Int64",
+      "surgery_position": "String",
+      "text_value": "String",
+      "time": "Datetime(time_unit='us', time_zone=None)",
+      "visit_id": "Int64"
+    },
+    "extra_data_columns": [
+      "diag_category",
+      "dilution_comparison",
+      "drug_form",
+      "emr_id",
+      "exam_part",
+      "flag",
+      "hadm_id",
+      "icustay_id",
+      "oper_id",
+      "org_itemid",
+      "prod_strength",
+      "seq_num",
+      "source_block",
+      "spec_itemid",
+      "surgery_position",
+      "text_value",
+      "visit_id"
+    ],
+    "has_code_metadata": true,
+    "has_dataset_metadata": true,
+    "has_subject_splits": true,
+    "missing_core_columns": [],
+    "n_data_shards": 15,
+    "shard_names": [
+      "held_out/0",
+      "held_out/1",
+      "train/0",
+      "train/1",
+      "train/10",
+      "train/2",
+      "train/3",
+      "train/4",
+      "train/5",
+      "train/6",
+      "train/7",
+      "train/8",
+      "train/9",
+      "tuning/0",
+      "tuning/1"
+    ],
+    "shard_names_digest": "sha256:7769e1bed36ed3b14d4bda1adaf0ce53aff187c8260e3625717e25b39d197ceb"
+  },
+  "meds_summary_stats_version": "0.0.2",
+  "per_subject": {
+    "n_events": {
+      "mean": 215.702,
+      "n": 12881,
+      "quantiles": {
+        "p1": 15.8,
+        "p25": 87.0,
+        "p5": 38.0,
+        "p50": 143.0,
+        "p75": 243.0,
+        "p95": 635.0,
+        "p99": 1203.0
+      },
+      "std": 262.452
+    },
+    "n_measurements": {
+      "mean": 1276.48,
+      "n": 12881,
+      "quantiles": {
+        "p1": 57.0,
+        "p25": 549.0,
+        "p5": 188.0,
+        "p50": 903.0,
+        "p75": 1473.0,
+        "p95": 3557.0,
+        "p99": 6905.6
+      },
+      "std": 1450.33
+    },
+    "n_unique_codes": {
+      "mean": 232.186,
+      "n": 12881,
+      "quantiles": {
+        "p1": 33.0,
+        "p25": 184.0,
+        "p5": 71.0,
+        "p50": 227.0,
+        "p75": 283.0,
+        "p95": 372.0,
+        "p99": 462.2
+      },
+      "std": 85.1398
+    },
+    "span_days": {
+      "mean": 945.443,
+      "n": 12881,
+      "quantiles": {
+        "p1": 6.35257,
+        "p25": 73.9583,
+        "p5": 14.5326,
+        "p50": 307.412,
+        "p75": 1291.05,
+        "p95": 4167.49,
+        "p99": 5122.87
+      },
+      "std": 1319.65
+    }
+  },
+  "splits": {
+    "by_split": {
+      "held_out": {
+        "n_measurements": 1647085,
+        "n_subjects": 1288
+      },
+      "train": {
+        "n_measurements": 13178801,
+        "n_subjects": 10305
+      },
+      "tuning": {
+        "n_measurements": 1616492,
+        "n_subjects": 1288
+      }
+    },
+    "n_splits": 3,
+    "n_subjects_in_data_without_split": 0,
+    "n_subjects_in_splits_without_data": 0,
+    "present": true
+  },
+  "stats_schema_version": 1,
+  "time": {
+    "by_year": {
+      "2056": {
+        "n_measurements": 20,
+        "n_subjects": 20
+      },
+      "2057": {
+        "n_measurements": 26,
+        "n_subjects": 26
+      },
+      "2058": {
+        "n_measurements": 34,
+        "n_subjects": 34
+      },
+      "2059": {
+        "n_measurements": 31,
+        "n_subjects": 31
+      },
+      "2060": {
+        "n_measurements": 261,
+        "n_subjects": 45
+      },
+      "2061": {
+        "n_measurements": 1556,
+        "n_subjects": 56
+      },
+      "2062": {
+        "n_measurements": 4647,
+        "n_subjects": 89
+      },
+      "2063": {
+        "n_measurements": 7363,
+        "n_subjects": 90
+      },
+      "2064": {
+        "n_measurements": 13042,
+        "n_subjects": 115
+      },
+      "2065": {
+        "n_measurements": 62157,
+        "n_subjects": 155
+      },
+      "2066": {
+        "n_measurements": 82173,
+        "n_subjects": 202
+      },
+      "2067": {
+        "n_measurements": 220401,
+        "n_subjects": 338
+      },
+      "2068": {
+        "n_measurements": 280464,
+        "n_subjects": 392
+      },
+      "2069": {
+        "n_measurements": 341614,
+        "n_subjects": 396
+      },
+      "2070": {
+        "n_measurements": 383988,
+        "n_subjects": 423
+      },
+      "2071": {
+        "n_measurements": 285368,
+        "n_subjects": 414
+      },
+      "2072": {
+        "n_measurements": 376246,
+        "n_subjects": 433
+      },
+      "2073": {
+        "n_measurements": 334207,
+        "n_subjects": 410
+      },
+      "2074": {
+        "n_measurements": 338379,
+        "n_subjects": 457
+      },
+      "2075": {
+        "n_measurements": 320569,
+        "n_subjects": 407
+      },
+      "2076": {
+        "n_measurements": 275149,
+        "n_subjects": 404
+      },
+      "2077": {
+        "n_measurements": 279086,
+        "n_subjects": 390
+      },
+      "2078": {
+        "n_measurements": 331401,
+        "n_subjects": 388
+      },
+      "2079": {
+        "n_measurements": 340824,
+        "n_subjects": 434
+      },
+      "2080": {
+        "n_measurements": 345651,
+        "n_subjects": 431
+      },
+      "2081": {
+        "n_measurements": 313942,
+        "n_subjects": 426
+      },
+      "2082": {
+        "n_measurements": 296244,
+        "n_subjects": 387
+      },
+      "2083": {
+        "n_measurements": 288224,
+        "n_subjects": 418
+      },
+      "2084": {
+        "n_measurements": 283340,
+        "n_subjects": 419
+      },
+      "2085": {
+        "n_measurements": 312934,
+        "n_subjects": 453
+      },
+      "2086": {
+        "n_measurements": 376145,
+        "n_subjects": 410
+      },
+      "2087": {
+        "n_measurements": 290755,
+        "n_subjects": 391
+      },
+      "2088": {
+        "n_measurements": 270235,
+        "n_subjects": 406
+      },
+      "2089": {
+        "n_measurements": 315599,
+        "n_subjects": 406
+      },
+      "2090": {
+        "n_measurements": 280132,
+        "n_subjects": 392
+      },
+      "2091": {
+        "n_measurements": 330784,
+        "n_subjects": 424
+      },
+      "2092": {
+        "n_measurements": 311344,
+        "n_subjects": 420
+      },
+      "2093": {
+        "n_measurements": 339893,
+        "n_subjects": 472
+      },
+      "2094": {
+        "n_measurements": 337224,
+        "n_subjects": 426
+      },
+      "2095": {
+        "n_measurements": 334251,
+        "n_subjects": 398
+      },
+      "2096": {
+        "n_measurements": 312540,
+        "n_subjects": 420
+      },
+      "2097": {
+        "n_measurements": 338599,
+        "n_subjects": 405
+      },
+      "2098": {
+        "n_measurements": 306818,
+        "n_subjects": 447
+      },
+      "2099": {
+        "n_measurements": 332867,
+        "n_subjects": 417
+      },
+      "2100": {
+        "n_measurements": 326684,
+        "n_subjects": 419
+      },
+      "2101": {
+        "n_measurements": 351778,
+        "n_subjects": 429
+      },
+      "2102": {
+        "n_measurements": 270160,
+        "n_subjects": 409
+      },
+      "2103": {
+        "n_measurements": 394980,
+        "n_subjects": 458
+      },
+      "2104": {
+        "n_measurements": 354434,
+        "n_subjects": 437
+      },
+      "2105": {
+        "n_measurements": 296768,
+        "n_subjects": 394
+      },
+      "2106": {
+        "n_measurements": 282073,
+        "n_subjects": 414
+      },
+      "2107": {
+        "n_measurements": 290145,
+        "n_subjects": 415
+      },
+      "2108": {
+        "n_measurements": 289750,
+        "n_subjects": 396
+      },
+      "2109": {
+        "n_measurements": 308619,
+        "n_subjects": 423
+      },
+      "2110": {
+        "n_measurements": 372443,
+        "n_subjects": 389
+      },
+      "2111": {
+        "n_measurements": 290249,
+        "n_subjects": 384
+      },
+      "2112": {
+        "n_measurements": 368747,
+        "n_subjects": 390
+      },
+      "2113": {
+        "n_measurements": 376588,
+        "n_subjects": 371
+      },
+      "2114": {
+        "n_measurements": 338790,
+        "n_subjects": 320
+      },
+      "2115": {
+        "n_measurements": 271280,
+        "n_subjects": 305
+      },
+      "2116": {
+        "n_measurements": 263622,
+        "n_subjects": 282
+      },
+      "2117": {
+        "n_measurements": 244275,
+        "n_subjects": 216
+      },
+      "2118": {
+        "n_measurements": 137326,
+        "n_subjects": 85
+      },
+      "<suppressed>": {
+        "n_measurements": 4259,
+        "n_years": 8
+      }
+    },
+    "n_measurements_with_time": 16429497,
+    "n_years_observed": 71
+  }
+}
