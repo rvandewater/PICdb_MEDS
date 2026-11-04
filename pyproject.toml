@@ -45,19 +45,16 @@ dev = [
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
 
-# Ship the YAML files as package data: `event_configs.yaml` (the ETL) and `sumeds_rules.yaml` (the
-# suMEDS enrichment rules), so both resolve through `importlib.resources` from an installed wheel.
+# Ship the YAML files as package data: `event_configs.yaml` (the MESSY spec, i.e. the whole ETL) and
+# `sumeds_rules.yaml` (the suMEDS enrichment rules), so both resolve through `importlib.resources`
+# from an installed wheel. They are not Python files, so without this the wheel lacks them
+# (PICdb-MEDS 0.0.1 on PyPI shipped without the spec).
 [tool.setuptools.package-data]
 PICdb_MEDS = ["*.yaml"]
 
 [project.urls]
 Homepage = "https://github.com/rvandewater/PICdb_MEDS"
 Issues = "https://github.com/rvandewater/PICdb_MEDS/issues"
-
-[tool.setuptools.package-data]
-# The MESSY spec is the whole ETL. It is not a Python file, so it has to be listed, or installed
-# wheels lack it (PICdb-MEDS 0.0.1 on PyPI shipped without it).
-PICdb_MEDS = ["event_configs.yaml"]
 
 [tool.ruff]
 target-version = "py311"
