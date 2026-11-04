@@ -8,12 +8,12 @@ authors:
   given-names: Robin
   orcid: 0000-0002-2895-4872
 cff-version: 1.2.0
-date-released: '2026-10-26'
+date-released: '2026-11-03'
 doi: 10.5281/zenodo.23676598
 license:
 - mit
 message: If you use this software, please cite it using the metadata from this file.
-repository-code: https://github.com/rvandewater/PICdb_MEDS/tree/0.0.2
+repository-code: https://github.com/rvandewater/PICdb_MEDS/tree/0.0.3
 title: PICdb MEDS ETL
 type: software
-version: 0.0.2
+version: 0.0.3

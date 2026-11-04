@@ -5,9 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PICdb-MEDS"
 # The last released version. A release bumps it with `uv version --bump` and tags the commit with
-# the result (see RELEASING.md); CI refuses a tag that differs from it. 0.0.2 was tagged but never
-# published, so the next release is 0.0.3.
-version = "0.0.2"
+# the result (see RELEASING.md); CI refuses a tag that differs from it.
+version = "0.0.3"
 authors = [
   { name="Robin van de Water", email="rpv2114@cumc.columbia.edu" },
 ]
