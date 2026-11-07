@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 CONFIG_FP = Path(__file__).parents[1] / "src" / "PICdb_MEDS" / "event_configs.yaml"
-# MEDS-reserved literal codes. MEDS-Extract 0.7 attaches no metadata to a code without components.
+# MEDS-reserved literal codes. MEDS-Extract 0.8 attaches no metadata to a code without components.
 MEDS_LITERALS = {"MEDS_BIRTH", "MEDS_DEATH"}
 # OMOP `vocabulary_id`s that `parent_codes` may point into: codes PIC's own dictionaries carry. Other
 # vocabularies (ICD-O-3 morphology) are tagged by suMEDS through `sumeds_rules.yaml`.
@@ -48,7 +48,7 @@ def test_self_descriptions_depend_only_on_the_code():
         if template is None:
             continue
         allowed = set(COLUMN.findall(str(event["code"])))
-        for join in table_cfg.get("join", {}).values():
+        for join in table_cfg.get("joins", {}).values():
             left_on = join.get("left_on", join.get("key"))
             left_on = {left_on} if isinstance(left_on, str) else set(left_on)
             if left_on <= allowed and isinstance(join["cols"], list):

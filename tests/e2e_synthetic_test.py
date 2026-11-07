@@ -700,7 +700,7 @@ def test_code_metadata(codes: pl.DataFrame):
 def test_code_descriptions(codes: pl.DataFrame):
     by_code = dict(zip(codes["code"], codes["description"], strict=True))
 
-    # Every code is described except the MEDS-reserved literal codes, to which MEDS-Extract 0.7
+    # Every code is described except the MEDS-reserved literal codes, to which MEDS-Extract 0.8
     # attaches no metadata.
     assert sorted(code for code, desc in by_code.items() if desc is None) == ["MEDS_BIRTH", "MEDS_DEATH"]
 

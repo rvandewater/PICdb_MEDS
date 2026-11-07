@@ -113,7 +113,7 @@ PIC's dictionary tables:
         names the five ICUs and says what `INPUTEVENTS` holds. The PhysioNet page explains the `+`/`-`
         symptom attribute and the "Other" ethnicity group. A specimen ID that `D_ITEMS` does not list
         gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
-    - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.7 attaches no metadata to a
+    - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.8 attaches no metadata to a
         literal code, and the MEDS standard defines what these two mean.
 - **`parent_codes`**: `LOINC/…` for lab items with a well-formed LOINC code, and `ICD10/…` for
     diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. Both come from PIC's own
@@ -155,6 +155,9 @@ The ETL alone writes no `ICDO3` parents and no same-dataset parents; run suMEDS 
     2119 are expected, and intervals within a patient are preserved.
 - **Release layout.** The v1.1.0 release ships the current tables under `V1.1.0/`. The gzipped files at
     the release root are the superseded v1.0.0 tables, and this ETL does not read them.
+- **Text encoding.** Every v1.1.0 CSV is UTF-8, including the Chinese columns. The config declares
+    `etl.encoding: utf8`, so a file in another encoding fails loudly. MEDS-Extract's default (`auto`)
+    could instead decode it as cp1252, which garbles Chinese text.
 - **Swapped column names.** In `PRESCRIPTIONS`, the CSV header `DRUG_NAME` holds the Chinese name and
     `DRUG_NAME_EN` the English one. The bundled SQL scripts name these columns differently.
 - **Many-to-many microbiology IDs.** Item IDs and their Chinese names do not map one-to-one, so codes

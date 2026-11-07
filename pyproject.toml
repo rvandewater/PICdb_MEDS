@@ -12,7 +12,7 @@ authors = [
 ]
 description = "An ETL pipeline to extract the Paediatric Intensive Care (PIC) database into the MEDS format."
 readme = "README.md"
-# Mirrors MEDS-Extract 0.7's own interpreter range; a looser range here admits interpreters it
+# Mirrors MEDS-Extract 0.8's own interpreter range; a looser range here admits interpreters it
 # cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
@@ -25,10 +25,12 @@ classifiers = [
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
-# The floor is 0.7.0: this config uses `_self` metadata blocks, aggregated joins and regex
-# conditionals in `parent_codes`, none of which exist before 0.7.
+# The floor is 0.8.0: this config uses `_self` metadata blocks, aggregated joins and regex
+# conditionals in `parent_codes` (0.7), and spells its joins `_table.joins` (renamed from
+# `_table.join` in 0.8). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
+# (MESSY syntax, runner CLI); raise it deliberately when migrating.
 dependencies = [
-    "meds-extract[download]>=0.7.0,<0.8",
+    "meds-extract[download]>=0.8.0,<0.9",
 ]
 
 [dependency-groups]
