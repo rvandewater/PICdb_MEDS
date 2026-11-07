@@ -8,7 +8,9 @@ same release, so the enriched `metadata/codes.parquet` can be compared with the 
 The ontology source is a tiny pack repository in suMEDS's `sumeds-ontologies/0.1` layout, built here
 with a made-up title for the one LOINC code of the synthetic labs, so the test reads nothing over
 the network and does not depend on the published packs. There is no WHO ICD-10 or ICD-O-3 pack (the
-published packs have none either), so the `ICD10/` parents the ETL writes stay unnamed.
+published packs have none either), so the `ICD10/` parents the ETL writes stay unnamed. Another
+run points at an empty pack source, which is how a site without internet fails: the ETL still
+succeeds, unenriched, and `suMEDS-enrich` completes it later.
 """
 
 import csv
@@ -21,7 +23,7 @@ import polars as pl
 import pyarrow.parquet as pq
 import pytest
 from e2e_synthetic_test import SPEC, run_command, write_raw_release
-from meds import CodeMetadataSchema
+from meds import CodeMetadataSchema, DatasetMetadataSchema
 from polars.testing import assert_frame_equal
 
 # vocabulary -> release -> code -> parent (None for a root). LOINC terms have no parents.
@@ -93,11 +95,16 @@ def ontology_source(tmp_path_factory) -> Path:
 
 
 @pytest.fixture(scope="module")
-def outputs(tmp_path_factory, ontology_source: Path) -> tuple[Path, Path]:
+def raw(tmp_path_factory) -> Path:
+    raw = tmp_path_factory.mktemp("picdb_raw")
+    write_raw_release(raw)
+    return raw
+
+
+@pytest.fixture(scope="module")
+def outputs(tmp_path_factory, raw: Path, ontology_source: Path) -> tuple[Path, Path]:
     """The plain and the enriched build of the synthetic release."""
     root = tmp_path_factory.mktemp("picdb_enriched")
-    raw = root / "raw"
-    write_raw_release(raw)
     plain, enriched = root / "plain", root / "enriched"
     source = ["do_download=false", f"input_dir={raw}"]
     run_command("meds-extract-run", f"spec={SPEC}", f"output_dir={plain}", *source)
@@ -121,6 +128,13 @@ def plain_codes(outputs) -> dict[str, dict]:
 @pytest.fixture(scope="module")
 def enriched_codes(outputs) -> dict[str, dict]:
     return {row["code"]: row for row in pl.read_parquet(outputs[1] / "metadata" / "codes.parquet").to_dicts()}
+
+
+def _dataset(output_dir: Path) -> dict:
+    """`dataset.json`, checked to still be valid MEDS dataset metadata."""
+    dataset = json.loads((output_dir / "metadata" / "dataset.json").read_text())
+    DatasetMetadataSchema.validate(dataset)
+    return dataset
 
 
 def test_codes_parquet_is_replaced_by_valid_meds_metadata(outputs):
@@ -175,3 +189,65 @@ def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_
         if len(row["parent_codes"] or []) > len(plain_codes[code]["parent_codes"] or [])
     }
     assert gained == {"DIAGNOSIS//ICD10_CN//J18.900x001", "DIAGNOSIS//ICD10_CN//M80000/3"}
+
+
+def test_dataset_json_records_the_enrichment(outputs, plain_codes, enriched_codes):
+    """`metadata/dataset.json` says the build is enriched, with which rules, and what it added."""
+    plain, dataset = (_dataset(out) for out in outputs)
+    assert "sumeds_enrichment" not in plain
+    assert set(dataset) == {*plain, "sumeds_enrichment"}
+    record = dataset["sumeds_enrichment"]
+    assert record["enriched"] is True
+    assert record["rules"] == SPEC
+    assert record["ontology_source"] == "local"
+    assert record["athena"] is False
+
+    def filled(rows: dict[str, dict], column: str) -> int:
+        return sum(row.get(column) is not None for row in rows.values())
+
+    assert record["coverage"] == {
+        "codes": len(enriched_codes),
+        "described": [filled(plain_codes, "description"), filled(enriched_codes, "description")],
+        "with_parent_codes": [filled(plain_codes, "parent_codes"), filled(enriched_codes, "parent_codes")],
+    }
+
+
+def test_enrichment_soft_fails_and_suMEDS_enrich_completes_it_later(
+    tmp_path: Path, raw: Path, ontology_source: Path, outputs
+):
+    """With no usable pack source (as on a site without internet), the ETL still succeeds: `codes.parquet` is
+    left exactly as the plain ETL writes it, `dataset.json` records that it is not enriched and how to retry,
+    and `suMEDS-enrich <OUT>` then gives the same table as a run that enriched directly."""
+    plain, enriched = outputs
+    empty_source = tmp_path / "no_packs"
+    empty_source.mkdir()
+    output_dir = tmp_path / "MEDS_cohort"
+    stderr = run_command(
+        "suMEDS-extract",
+        f"spec={SPEC}",
+        f"output_dir={output_dir}",
+        "do_download=false",
+        f"input_dir={raw}",
+        "--",
+        "--ontology-source",
+        str(empty_source),
+    )
+    assert "enrichment failed" in stderr
+    assert f"suMEDS-enrich {output_dir} --ontology-source {empty_source}" in stderr
+
+    codes = output_dir / "metadata" / "codes.parquet"
+    assert codes.read_bytes() == (plain / "metadata" / "codes.parquet").read_bytes()
+    record = _dataset(output_dir)["sumeds_enrichment"]
+    assert record["enriched"] is False
+    assert record["rules"] == SPEC
+    assert record["error"].startswith("OntologyPackError")
+    assert record["retry"] == "suMEDS-enrich <MEDS_ROOT> --ontology-source <PACKS_DIR>"
+
+    run_command("suMEDS-enrich", str(output_dir), "--ontology-source", str(ontology_source))
+    record = _dataset(output_dir)["sumeds_enrichment"]
+    direct = _dataset(enriched)["sumeds_enrichment"]
+    assert record["enriched"] is True
+    assert {k: v for k, v in record.items() if k != "enriched_at"} == {
+        k: v for k, v in direct.items() if k != "enriched_at"
+    }
+    assert pq.read_table(codes).equals(pq.read_table(enriched / "metadata" / "codes.parquet"))

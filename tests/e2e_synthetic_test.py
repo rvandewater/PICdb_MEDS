@@ -570,8 +570,8 @@ def write_raw_release(root: Path) -> None:
             writer.writerows(rows)
 
 
-def run_command(runner: str, *args: str) -> None:
-    """Run an installed console script and fail the test with its output if it fails."""
+def run_command(runner: str, *args: str) -> str:
+    """Run an installed console script and fail the test with its output if it fails; return its stderr."""
     # Resolve the runner against `sysconfig`'s script dir rather than the ambient PATH, so the test
     # behaves the same under `uv run pytest` and a bare `pytest`. The dir is also prepended to the
     # child's PATH, because the runner spawns stages (and `suMEDS-extract` spawns
@@ -587,6 +587,7 @@ def run_command(runner: str, *args: str) -> None:
         f"{' '.join(command)} failed with return code {result.returncode}.\n"
         f"stdout:\n{result.stdout.decode()}\nstderr:\n{result.stderr.decode()}"
     )
+    return result.stderr.decode()
 
 
 @pytest.fixture(scope="module")

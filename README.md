@@ -157,12 +157,22 @@ suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --athena-csv /path/to/a
 suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --offline
 ```
 
-Running it again on an existing output skips the pipeline stages that are already done and enriches
-again. To enrich the `codes.parquet` of an existing build instead:
+Enrichment is on by default and soft-fails: if it cannot run (a server without internet, for example),
+the ETL still succeeds with `metadata/codes.parquet` left exactly as `meds-extract-run` writes it, and a
+warning gives the command to enrich it later. `metadata/dataset.json` says whether a build is enriched:
+`sumeds_enrichment.enriched` is `true` (with the rules, pack source and coverage) or `false` (with the
+error and the `retry` command). To enrich a build afterwards, with the rules and options of the default
+run:
 
 ```bash
-suMEDS-enrich "$MEDS_OUTPUT_DIR/metadata/codes.parquet" -o "$MEDS_OUTPUT_DIR/metadata/codes.parquet" --rules PICdb
+suMEDS-enrich $MEDS_OUTPUT_DIR
+# Air-gapped: from a copy of the sumeds-ontologies packs directory
+suMEDS-enrich $MEDS_OUTPUT_DIR --ontology-source /path/to/sumeds-ontologies/ontologies --offline
 ```
+
+For the plain, unenriched ETL, run `meds-extract-run` instead of `suMEDS-extract`. To make a failed
+enrichment an error (exit code 1), pass `-- --strict`. Running `suMEDS-extract` again on an existing
+output skips the pipeline stages that are already done and enriches again.
 
 Enrichment never overwrites what the ETL wrote: PIC's own descriptions, Chinese terms and `parent_codes`
 stay as they are, and new parents are appended after the existing ones. For PICdb it adds:
@@ -220,8 +230,9 @@ and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` checks th
 registered under `PICdb`, loads `sumeds_rules.yaml` with suMEDS, which rejects a malformed rule, and
 applies each rule through suMEDS to synthetic codes built from the code templates in the event config.
 `tests/test_run_with_enrichment.py` runs `suMEDS-extract spec=PICdb` over the synthetic release, offline
-against a tiny synthetic LOINC pack, and checks that the enrichment adds the expected names and parents
-and keeps everything the plain `meds-extract-run` build wrote.
+against a tiny synthetic LOINC pack, and checks that the enrichment adds the expected names and parents,
+keeps everything the plain `meds-extract-run` build wrote, and is recorded in `dataset.json`. It also
+runs against an empty pack source, to check the soft failure and its `suMEDS-enrich` retry.
 
 ```bash
 uv sync --group dev
