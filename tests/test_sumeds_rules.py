@@ -14,7 +14,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 import yaml
-from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules
+from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules, registered_rules
 from sumeds.ontology import INDEX_SCHEMA
 
 ROOT = Path(__file__).parents[1]
@@ -82,6 +82,15 @@ def test_rules_load_in_sumeds():
         if rule.pattern is not None:
             assert rule.pattern.pattern.startswith("^"), rule.id
             assert rule.pattern.pattern.endswith("$"), rule.id
+
+
+def test_rules_are_registered_under_the_spec_name():
+    """`suMEDS-extract spec=PICdb` and `--rules PICdb` find the rules by this entry point."""
+    entry_points = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["entry-points"]
+    assert entry_points["sumeds.rules"].keys() == entry_points["MEDS_extract.pipelines"].keys() == {"PICdb"}
+    assert "PICdb" in registered_rules()
+    assert registered_rules()["PICdb"] == "PICdb_MEDS:sumeds_rules.yaml"
+    assert load_rules("PICdb") == load_rules(RULES_FP)
 
 
 def test_rules_file_is_package_data():

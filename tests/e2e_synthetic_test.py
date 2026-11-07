@@ -155,6 +155,15 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE_CN": "J18.900",
             "Diag_Category": "Primary",
         },
+        # A PIC extension of J18.900: suMEDS's prefix rule links the two (test_run_with_enrichment.py).
+        {
+            "ROW_ID": "5",
+            "SUBJECT_ID": "1",
+            "HADM_ID": "101",
+            "SEQ_NUM": "2",
+            "ICD10_CODE_CN": "J18.900x001",
+            "Diag_Category": "Other",
+        },
         {
             "ROW_ID": "2",
             "SUBJECT_ID": "2",
@@ -188,6 +197,13 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE": "J18.9",
             "TITLE_CN": "肺炎",
             "TITLE": "Pneumonia, unspecified",
+        },
+        {
+            "ROW_ID": "5",
+            "ICD10_CODE_CN": "J18.900x001",
+            "ICD10_CODE": "J18.9",
+            "TITLE_CN": "测试肺炎",
+            "TITLE": "Synthetic pneumonia subtype",
         },
         {
             "ROW_ID": "2",
@@ -554,26 +570,33 @@ def write_raw_release(root: Path) -> None:
             writer.writerows(rows)
 
 
-@pytest.fixture(scope="module")
-def cohort(tmp_path_factory) -> Path:
+def run_command(runner: str, *args: str) -> None:
+    """Run an installed console script and fail the test with its output if it fails."""
     # Resolve the runner against `sysconfig`'s script dir rather than the ambient PATH, so the test
     # behaves the same under `uv run pytest` and a bare `pytest`. The dir is also prepended to the
-    # child's PATH, because the runner spawns stages by bare name.
+    # child's PATH, because the runner spawns stages (and `suMEDS-extract` spawns
+    # `meds-extract-run`) by bare name.
     scripts = Path(sysconfig.get_path("scripts"))
-    runner = scripts / "meds-extract-run"
-    assert runner.exists(), f"meds-extract-run is not installed in this environment ({sys.executable})."
+    executable = scripts / runner
+    assert executable.exists(), f"{runner} is not installed in this environment ({sys.executable})."
     env = os.environ | {"PATH": f"{scripts}{os.pathsep}{os.environ.get('PATH', '')}"}
 
-    root = tmp_path_factory.mktemp("picdb")
-    raw = root / "raw"
-    write_raw_release(raw)
-    out = root / "MEDS_cohort"
-
-    command = [str(runner), f"spec={SPEC}", f"output_dir={out}", "do_download=false", f"input_dir={raw}"]
+    command = [str(executable), *args]
     result = subprocess.run(command, capture_output=True, check=False, env=env)
     assert result.returncode == 0, (
         f"{' '.join(command)} failed with return code {result.returncode}.\n"
         f"stdout:\n{result.stdout.decode()}\nstderr:\n{result.stderr.decode()}"
+    )
+
+
+@pytest.fixture(scope="module")
+def cohort(tmp_path_factory) -> Path:
+    root = tmp_path_factory.mktemp("picdb")
+    raw = root / "raw"
+    write_raw_release(raw)
+    out = root / "MEDS_cohort"
+    run_command(
+        "meds-extract-run", f"spec={SPEC}", f"output_dir={out}", "do_download=false", f"input_dir={raw}"
     )
     return out
 
@@ -691,10 +714,12 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["MEDICATION//START//Vancomycin Injection//mg"]["drug_name_cn"] == ["万古霉素"]
     assert by_code["SYMPTOM//fever//+"]["symptom_name_cn"] == ["发热"]
 
-    # An ICD-O-3 morphology code gets no parent from the ETL; suMEDS tags it through
-    # `sumeds_rules.yaml` (see `test_sumeds_rules.py`).
+    # An ICD-O-3 morphology code gets no parent from the ETL, and an extended code gets no parent
+    # from the same dataset; suMEDS adds both through `sumeds_rules.yaml` (see
+    # `test_run_with_enrichment.py`).
     assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
     assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
+    assert by_code["DIAGNOSIS//ICD10_CN//J18.900x001"]["parent_codes"] == ["ICD10/J18.9"]
 
 
 def test_code_descriptions(codes: pl.DataFrame):

@@ -86,10 +86,11 @@ update the trusted publisher under the project's *Publishing* settings on PyPI t
 
     ```bash
     uv run --no-project --with PICdb-MEDS==$VERSION python -c \
-    	"import importlib.resources as r; print(r.files('PICdb_MEDS').joinpath('event_configs.yaml').is_file())"
+    	"import importlib.resources as r; print(all(r.files('PICdb_MEDS').joinpath(f).is_file() for f in ('event_configs.yaml', 'sumeds_rules.yaml')))"
     ```
 
-    It must print `True`: a wheel without the spec cannot run `meds-extract-run spec=PICdb`.
+    It must print `True`: a wheel without the spec cannot run `meds-extract-run spec=PICdb`, and one
+    without the rules cannot enrich with `suMEDS-extract spec=PICdb`.
 
 ## When something goes wrong
 

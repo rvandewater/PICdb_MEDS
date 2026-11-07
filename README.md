@@ -19,7 +19,8 @@ from PhysioNet into the [MEDS format](https://medical-event-data-standard.github
 neonatal and paediatric patients and 13,449 hospital admissions from the Children's Hospital of Zhejiang
 University School of Medicine (2010–2018). It was built from the
 [ETL_MEDS_Template](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template) and uses the
-config-only layout introduced by [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract) 0.7.
+config-only layout introduced by [MEDS-Extract](https://github.com/mmcdermott/MEDS_extract) 0.7, and
+[suMEDS](https://github.com/rvandewater/SumMEDS) enriches its code metadata.
 
 ## Usage
 
@@ -29,7 +30,7 @@ PIC is a credentialed dataset. You need a PhysioNet account that has signed the 
 pip install git+https://github.com/rvandewater/PICdb_MEDS.git
 export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
 export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
-meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
+suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 ```
 
 When you run this, the program will:
@@ -41,12 +42,20 @@ When you run this, the program will:
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
+3. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
+    (installed with this package), using the rules this package ships: LOINC names, ICD-O-3 morphology
+    tags and same-dataset diagnosis parents (see
+    [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
+
+`suMEDS-extract` runs steps 1 and 2 with `meds-extract-run spec=PICdb`. Arguments before a `--` go to
+`meds-extract-run`, and arguments after it go to `suMEDS-enrich`. For the plain ETL without step 3, run
+`meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR` with the same arguments.
 
 If you already have the PhysioNet release on disk, skip the download and point `input_dir` at the
 release root, the directory that contains `V1.1.0/`:
 
 ```bash
-meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR \
+suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR \
 	do_download=false input_dir=/path/to/paediatric-intensive-care-database-1.1.0
 ```
 
@@ -54,10 +63,11 @@ To parallelize the stages, pass a runner file:
 
 ```bash
 printf 'parallelize:\n  n_workers: 8\n  launcher: joblib\n' >runner.yaml
-meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.yaml
+suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.yaml
 ```
 
-Run `meds-extract-run --help` for every option.
+Run `meds-extract-run --help` for every pipeline option and `suMEDS-enrich --help` for every enrichment
+option.
 
 ## How this ETL is defined
 
@@ -70,8 +80,11 @@ file, [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb
     tables describe the resulting codes.
 
 `pyproject.toml` registers the file with MEDS-Extract's `MEDS_extract.pipelines` entry-point group under
-the name `PICdb`. That registration is what makes `spec=PICdb` work. No pre-MEDS step is needed: every
-PIC table already carries `SUBJECT_ID`, and every timestamp has the same format.
+the name `PICdb`. That registration is what makes `spec=PICdb` work. A second entry point registers
+[`src/PICdb_MEDS/sumeds_rules.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/sumeds_rules.yaml)
+with suMEDS under the same name, which is all `suMEDS-extract spec=PICdb` needs to enrich the output. No
+pre-MEDS step is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has the same
+format.
 
 ## Events
 
@@ -128,16 +141,39 @@ PIC's dictionary tables:
 ### Enriching code metadata with suMEDS
 
 External-ontology work lives in [suMEDS](https://github.com/rvandewater/SumMEDS), not in this ETL. The
-package ships the rules for it, `src/PICdb_MEDS/sumeds_rules.yaml` (also installed as package data), which
-suMEDS applies to a finished build (this needs suMEDS 0.4 or later, `pip install "sumeds>=0.4"`):
+package ships the rules for it,
+[`src/PICdb_MEDS/sumeds_rules.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/sumeds_rules.yaml),
+registered in suMEDS's `sumeds.rules` entry-point group under the same name as the MEDS-Extract spec,
+`PICdb`. That is how `suMEDS-extract spec=PICdb` finds them, and `--rules PICdb` works for any suMEDS
+command. `suMEDS-extract` replaces `metadata/codes.parquet` only once the enriched table is complete,
+and it stays valid MEDS code metadata. By default the LOINC data comes from suMEDS's ontology packs,
+fetched from GitHub on first use and cached; no Athena download is needed. suMEDS options go after a
+`--`:
 
 ```bash
-suMEDS-enrich "$MEDS_OUTPUT_DIR/metadata/codes.parquet" -o codes-enriched.parquet \
-	--rules src/PICdb_MEDS/sumeds_rules.yaml
+# Also look codes up in your own OHDSI Athena download:
+suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --athena-csv /path/to/athena
+# Use only already cached packs (no network):
+suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --offline
 ```
 
-The rules add, as `VOCABULARY//CODE` parents and same-dataset codes:
+Running it again on an existing output skips the pipeline stages that are already done and enriches
+again. To enrich the `codes.parquet` of an existing build instead:
 
+```bash
+suMEDS-enrich "$MEDS_OUTPUT_DIR/metadata/codes.parquet" -o "$MEDS_OUTPUT_DIR/metadata/codes.parquet" --rules PICdb
+```
+
+Enrichment never overwrites what the ETL wrote: PIC's own descriptions, Chinese terms and `parent_codes`
+stay as they are, and new parents are appended after the existing ones. For PICdb it adds:
+
+- **LOINC names**: the `LOINC/…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
+    found gets its official LOINC name in `parent_names` (a map from parent code to name), and the lab
+    code gets `vocabulary_id` `LOINC` and its `concept_code`. LOINC terms have no parents in the pack,
+    so no parents are added unless you pass `--loinc-hierarchy`, which appends the LOINC Parts on the
+    term's paths in the LOINC multiaxial hierarchy. The `ICD10/…` parents of diagnoses stay unnamed,
+    because WHO ICD-10 may not be redistributed and has no pack; with `--athena-csv` they get their
+    names and ancestors from Athena.
 - **ICD-O-3 morphology** (`picdb-icdo3-morphology`): diagnoses coded in the Chinese edition of ICD-O-3
     (`M80000/3`; the PIC paper notes that diagnoses use both ICD-10 and ICD-O-3) get the OMOP ICDO3
     histology code (`ICDO3//8000/3`). suMEDS's versioned ontology data (sumeds-ontologies, pinned
@@ -145,9 +181,12 @@ The rules add, as `VOCABULARY//CODE` parents and same-dataset codes:
     (`--athena-csv`).
 - **Same-dataset parents** (`picdb-diagnosis-prefix`, `picdb-admission-diagnosis-prefix`): a diagnosis
     code gets the nearest shorter code of the same family that exists in the build, skipping dots, for
-    example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`.
+    example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`, or a PIC extension
+    such as `P07.300x001` under `P07.300`. Diagnoses and admission diagnoses are linked separately.
 
-The ETL alone writes no `ICDO3` parents and no same-dataset parents; run suMEDS to get them.
+The ETL alone writes no `ICDO3` parents and no same-dataset parents; `meds-extract-run` without suMEDS
+leaves them out. The same rules work with `suMEDS … --rules PICdb` to build a privacy-masked code
+catalog of the output.
 
 ### Data notes
 
@@ -177,9 +216,12 @@ with PIC's exact headers and layout, runs `meds-extract-run spec=PICdb` over the
 events, times, values and code metadata it produces. That includes checking that the output validates
 against `meds.CodeMetadataSchema`. `tests/test_code_descriptions.py` checks the config itself: every
 event block declares exactly one description, a `_self` description reads only the code's own parts,
-and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` loads `sumeds_rules.yaml` with
-suMEDS, which rejects a malformed rule, and applies each rule through suMEDS to synthetic codes built
-from the code templates in the event config.
+and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` checks that the rules are
+registered under `PICdb`, loads `sumeds_rules.yaml` with suMEDS, which rejects a malformed rule, and
+applies each rule through suMEDS to synthetic codes built from the code templates in the event config.
+`tests/test_run_with_enrichment.py` runs `suMEDS-extract spec=PICdb` over the synthetic release, offline
+against a tiny synthetic LOINC pack, and checks that the enrichment adds the expected names and parents
+and keeps everything the plain `meds-extract-run` build wrote.
 
 ```bash
 uv sync --group dev
@@ -191,7 +233,8 @@ uv run pre-commit run --all-files
 
 [`tests/regression/full_summary_stats.json`](tests/regression/full_summary_stats.json) is a
 [meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) fingerprint of
-the MEDS dataset this ETL builds from the full PICdb 1.1.0 release: subject, event and measurement
+the MEDS dataset this ETL builds from the full PICdb 1.1.0 release with `suMEDS-extract spec=PICdb`, so
+its code-metadata coverage includes the suMEDS enrichment. It covers subject, event and measurement
 counts, digests of the code vocabulary, per-subject, value and time distributions, code-metadata
 coverage, the splits and the schema. It names no code and reports no cell of fewer than 20 subjects and
 no minimum or maximum, which is what makes it safe to publish. Because it is committed next to the ETL,
@@ -212,8 +255,8 @@ Both print how the statistics changed against the committed baseline before over
 [`tests/regression/policy.yaml`](tests/regression/policy.yaml) flags an error. Rebuilding the same
 commit reproduces the baseline exactly, so any finding is a change in the output. CI cannot rebuild the
 credentialed release, so the [Summary stats workflow](.github/workflows/summary-stats.yaml) only warns
-when a pull request changes `src/` without regenerating the baseline. A MEDS-Extract or polars upgrade
-can also move the output, so check it with `--compare`.
+when a pull request changes `src/` (the config or the suMEDS rules) without regenerating the baseline. A
+MEDS-Extract, suMEDS or polars upgrade can also move the output, so check it with `--compare`.
 
 ## Releasing
 

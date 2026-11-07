@@ -29,8 +29,14 @@ classifiers = [
 # conditionals in `parent_codes` (0.7), and spells its joins `_table.joins` (renamed from
 # `_table.join` in 0.8). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
 # (MESSY syntax, runner CLI); raise it deliberately when migrating.
+#
+# suMEDS provides `suMEDS-extract`, which runs this ETL and then enriches its code metadata with
+# the rules registered below, and `suMEDS-enrich` for an existing build. 0.6 is the first release
+# that writes `parent_names` as a map from code to name. It is capped below the next minor for the
+# same reason (its rules format and CLI are still 0.x).
 dependencies = [
     "meds-extract[download]>=0.8.0,<0.9",
+    "sumeds>=0.6,<0.7",
 ]
 
 [dependency-groups]
@@ -38,13 +44,16 @@ dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
-    # tests/test_sumeds_rules.py loads the packaged rules with suMEDS itself.
-    "sumeds>=0.4",
     "shfmt-py==3.12.0.2",
 ]
 
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
+
+# Registers the suMEDS rules under the same name, so `suMEDS-extract spec=PICdb` and
+# `--rules PICdb` find them.
+[project.entry-points."sumeds.rules"]
+PICdb = "PICdb_MEDS:sumeds_rules.yaml"
 
 # Ship the YAML files as package data: `event_configs.yaml` (the MESSY spec, i.e. the whole ETL) and
 # `sumeds_rules.yaml` (the suMEDS enrichment rules), so both resolve through `importlib.resources`
