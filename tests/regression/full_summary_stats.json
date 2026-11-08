@@ -225,13 +225,35 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-07T19:36:04.765580+00:00",
+    "created_at": "2026-11-08T00:34:56.486071+00:00",
     "dataset_name": "PICdb",
     "dataset_version": "1.1.0:0.0.3",
+    "description_uri": "https://physionet.org/content/picdb/1.1.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
+    "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
+    "other_extension_columns": [
+      "source_block",
+      "seq_num",
+      "diag_category",
+      "flag",
+      "drug_form",
+      "prod_strength",
+      "spec_itemid",
+      "org_itemid",
+      "dilution_comparison",
+      "exam_part",
+      "surgery_position"
+    ],
     "present": true,
+    "raw_source_id_columns": [
+      "hadm_id",
+      "icustay_id",
+      "visit_id",
+      "oper_id",
+      "emr_id"
+    ],
     "sumeds_enrichment": {
       "athena": false,
       "coverage": {
@@ -246,7 +268,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-07T19:36:08Z",
+      "enriched_at": "2026-11-08T00:35:01Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -258,8 +280,8 @@
         "sibling_codes": false
       },
       "rules": "PICdb",
-      "rules_sha256": "1e2991dab020efb65fbccf20cada54ad49e32772b5b3ff74709f8ea04411c6bc",
-      "sumeds_version": "0.6.1"
+      "rules_sha256": "05bad2383d31ccf4e88e7ab47a8818ec39de61eab05aec09e5a9d560b320fda7",
+      "sumeds_version": "0.6.2"
     }
   },
   "dataset_digest": {
@@ -280,7 +302,7 @@
       "data/tuning/0.parquet": "sha256:c47f748784ee63090d0f06b527448114cd43385646f485e52c8b5cd131d85033",
       "data/tuning/1.parquet": "sha256:d19947dc0aa71a8808c92a05060ebafc844476e97381f097706ecad81c71ec71",
       "metadata/codes.parquet": "sha256:7db898a36599dc46eb3f2b8dc5c965db8d24c164d7cdf2a95282a68eb36ec507",
-      "metadata/dataset.json": "sha256:280057fc659008969ef829f65aaf3746a4ebd0f34e5629dd07abaa40dba6fef7",
+      "metadata/dataset.json": "sha256:b47a2bb2241d3893646201184300cd364a1cb79e5200d4c7af0112168a62f6cd",
       "metadata/subject_splits.parquet": "sha256:65f53b91c1ea26668771643184cc1f0b2cc92afe40f3d211924505653e81bc28"
     },
     "code_metadata": "sha256:630c5c77a9cda70f5789edf92db55e9c3c47914862ed6dcf483199577e9212b2",
@@ -289,12 +311,12 @@
       "digest": "sha256:43f8c0dfa7761182963fd0b41ab682f5854c55781ae5d438044b57642e7e17e5",
       "n_files": 15
     },
-    "dataset_metadata": "sha256:8807d64e8212ff571332190cef423609648dedfbc7c6db7687c9bc0a9b6fac6b",
+    "dataset_metadata": "sha256:aad1923ed67a177e9c0c00076d96e2c2abd731f7d05369f9d4b694edfd2bcd39",
     "method": "files",
     "n_files": 18,
     "subject_splits": "sha256:c5d56dc0cf40b5a3df7b90cdb042c9ca667d62b0d8db66647526cf237fdb6132"
   },
-  "extracted_at": "2026-11-07T19:36:10.854764",
+  "extracted_at": "2026-11-08T00:35:03.147303",
   "layout": {
     "code_metadata_columns": {
       "ab_name_cn": "List(String)",
