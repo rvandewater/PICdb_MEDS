@@ -6,6 +6,10 @@
 #
 #     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 #
+# That command also enriches `metadata/codes.parquet` with suMEDS, as the `sumeds_enrich` post-stage
+# declared under `etl:` below, using `sumeds_rules.yaml`, registered with suMEDS under the same name.
+# `skip_stages=[sumeds_enrich]` leaves it out.
+#
 # Conventions used throughout:
 #
 # - Table keys are paths relative to the raw input directory without the format suffix. PhysioNet's
@@ -39,6 +43,18 @@ etl:
   # it as cp1252 or latin-1, which garbles Chinese text in another encoding (such as GB18030).
   # Declaring UTF-8 makes such a file fail loudly, as every non-UTF-8 file did before 0.8.
   encoding: utf8
+  # Written to `metadata/dataset.json`, from the release's PhysioNet page. Keep the URI's version
+  # in step with `sources.dataset_version`.
+  license: PhysioNet Credentialed Health Data License 1.5.0
+  description_uri: https://physionet.org/content/picdb/1.1.0/
+  # PIC's admission, ICU stay, visit, operation and EMR record keys. Every other extension column is
+  # listed under `other_extension_columns` in `dataset.json`.
+  raw_source_id_columns: [hadm_id, icustay_id, visit_id, oper_id, emr_id]
+  # After the canonical stages, suMEDS adds parent codes and names to `metadata/codes.parquet` and
+  # records the result in `dataset.json` under `sumeds_enrichment`. If it cannot (no internet, say),
+  # the ETL still succeeds, unenriched, and `suMEDS-enrich <output_dir>` finishes it later.
+  post_stages:
+    - sumeds_enrich: { rules: PICdb }
 
 _defaults:
   subject_id: $SUBJECT_ID

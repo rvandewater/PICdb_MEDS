@@ -30,7 +30,7 @@ PIC is a credentialed dataset. You need a PhysioNet account that has signed the 
 pip install git+https://github.com/rvandewater/PICdb_MEDS.git
 export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
 export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
-suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 ```
 
 When you run this, the program will:
@@ -43,19 +43,18 @@ When you run this, the program will:
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
 3. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
-    (installed with this package), using the rules this package ships: LOINC names, ICD-O-3 morphology
-    tags and same-dataset diagnosis parents (see
-    [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
+    (installed with this package), as the spec's last stage, `sumeds_enrich`, using the rules this
+    package ships: LOINC names, ICD-O-3 morphology tags and same-dataset diagnosis parents. If it cannot
+    (no internet, say), the ETL still succeeds, unenriched, and `suMEDS-enrich $MEDS_OUTPUT_DIR`
+    finishes it later (see [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
 
-`suMEDS-extract` runs steps 1 and 2 with `meds-extract-run spec=PICdb`. Arguments before a `--` go to
-`meds-extract-run`, and arguments after it go to `suMEDS-enrich`. For the plain ETL without step 3, run
-`meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR` with the same arguments.
+For the plain ETL without step 3, add `skip_stages=[sumeds_enrich]`.
 
 If you already have the PhysioNet release on disk, skip the download and point `input_dir` at the
 release root, the directory that contains `V1.1.0/`:
 
 ```bash
-suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR \
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR \
 	do_download=false input_dir=/path/to/paediatric-intensive-care-database-1.1.0
 ```
 
@@ -63,7 +62,7 @@ To parallelize the stages, pass a runner file:
 
 ```bash
 printf 'parallelize:\n  n_workers: 8\n  launcher: joblib\n' >runner.yaml
-suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.yaml
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.yaml
 ```
 
 Run `meds-extract-run --help` for every pipeline option and `suMEDS-enrich --help` for every enrichment
@@ -75,16 +74,21 @@ The package contains no Python. The whole ETL is one MESSY (MEDS-Extract Specifi
 file, [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml). It declares:
 
 - **`sources:`**: where the raw data lives (the PhysioNet release, restricted to `V1.1.0/*.csv`).
-- **`etl:`**: the dataset name and sharding options.
+- **`etl:`**: the dataset name and sharding options, what `metadata/dataset.json` says about the
+    dataset, and the suMEDS enrichment stage that runs after the ETL.
 - **One block per raw table**: how each row becomes one or more MEDS events, and which dictionary
     tables describe the resulting codes.
 
 `pyproject.toml` registers the file with MEDS-Extract's `MEDS_extract.pipelines` entry-point group under
 the name `PICdb`. That registration is what makes `spec=PICdb` work. A second entry point registers
 [`src/PICdb_MEDS/sumeds_rules.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/sumeds_rules.yaml)
-with suMEDS under the same name, which is all `suMEDS-extract spec=PICdb` needs to enrich the output. No
-pre-MEDS step is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has the same
-format.
+with suMEDS under the same name, which is how the spec's enrichment stage finds them. No pre-MEDS step
+is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has the same format.
+
+`metadata/dataset.json` gives the release's `license` and PhysioNet page (`description_uri`), and lists
+`hadm_id`, `icustay_id`, `visit_id`, `oper_id` and `emr_id`, PIC's own record keys, under
+`raw_source_id_columns`. MEDS-Extract lists every other extension column under
+`other_extension_columns`.
 
 ## Events
 
@@ -144,25 +148,31 @@ External-ontology work lives in [suMEDS](https://github.com/rvandewater/SumMEDS)
 package ships the rules for it,
 [`src/PICdb_MEDS/sumeds_rules.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/sumeds_rules.yaml),
 registered in suMEDS's `sumeds.rules` entry-point group under the same name as the MEDS-Extract spec,
-`PICdb`. That is how `suMEDS-extract spec=PICdb` finds them, and `--rules PICdb` works for any suMEDS
-command. `suMEDS-extract` replaces `metadata/codes.parquet` only once the enriched table is complete,
-and it stays valid MEDS code metadata. By default the LOINC data comes from suMEDS's ontology packs,
-fetched from GitHub on first use and cached; no Athena download is needed. suMEDS options go after a
-`--`:
+`PICdb`, so `--rules PICdb` works for any suMEDS command. The spec runs them as its last stage:
 
-```bash
-# Also look codes up in your own OHDSI Athena download:
-suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --athena-csv /path/to/athena
-# Use only already cached packs (no network):
-suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR -- --offline
+```yaml
+etl:
+  post_stages:
+    - sumeds_enrich: {rules: PICdb}
 ```
 
-Enrichment is on by default and soft-fails: if it cannot run (a server without internet, for example),
-the ETL still succeeds with `metadata/codes.parquet` left exactly as `meds-extract-run` writes it, and a
-warning gives the command to enrich it later. `metadata/dataset.json` says whether a build is enriched:
-`sumeds_enrichment.enriched` is `true` (with the rules, pack source and coverage) or `false` (with the
-error and the `retry` command). To enrich a build afterwards, with the rules and options of the default
-run:
+The stage replaces `metadata/codes.parquet` only once the enriched table is complete, and it stays
+valid MEDS code metadata. By default the LOINC data comes from suMEDS's ontology packs,
+fetched from GitHub on first use and cached; no Athena download is needed.
+
+`metadata/dataset.json` says whether a build is enriched: `sumeds_enrichment.enriched` is `true`
+(with the rules, pack source and coverage) or `false` (with the error and the `retry` command).
+
+```bash
+jq .sumeds_enrichment.enriched $MEDS_OUTPUT_DIR/metadata/dataset.json
+```
+
+Enrichment soft-fails: if it cannot run (a server without internet, for example), the ETL still
+succeeds with `metadata/codes.parquet` left exactly as MEDS-Extract writes it, and `dataset.json`
+records `"enriched": false`. The warning, with the command that finishes the enrichment, is in
+`$MEDS_OUTPUT_DIR/.logs/pipeline.log`, not on the console. MEDS-Extract marks the stage done either
+way, so running `meds-extract-run` again does not retry it. Enrich the build afterwards, with the
+rules and options of the failed run:
 
 ```bash
 suMEDS-enrich $MEDS_OUTPUT_DIR
@@ -170,9 +180,36 @@ suMEDS-enrich $MEDS_OUTPUT_DIR
 suMEDS-enrich $MEDS_OUTPUT_DIR --ontology-source /path/to/sumeds-ontologies/ontologies --offline
 ```
 
-For the plain, unenriched ETL, run `meds-extract-run` instead of `suMEDS-extract`. To make a failed
-enrichment an error (exit code 1), pass `-- --strict`. Running `suMEDS-extract` again on an existing
-output skips the pipeline stages that are already done and enriches again.
+For the plain, unenriched ETL, leave the stage out with `skip_stages=[sumeds_enrich]`:
+
+```bash
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR skip_stages=[sumeds_enrich]
+```
+
+The stage takes the `suMEDS-enrich` options, spelled with underscores. Set them for one run with
+`overrides=`, as `++stage_cfg.<option>` (the override reaches every stage of the pipeline, and only
+this one declares the option, hence the `++`):
+
+```bash
+# Make a failed enrichment fail the run (exit code 1):
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg.strict=true']"
+# Also look codes up in your own OHDSI Athena download:
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg.athena_csv=/path/to/athena']"
+# Read the packs from a local copy (or set SUMEDS_ONTOLOGY_SOURCE=/path/to/ontologies):
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg.ontology_source=/path/to/ontologies']"
+```
+
+On a cluster whose compute nodes have no internet access, fill a cache on shared storage once from
+a login node, then run with `offline`, so nothing tries the network:
+
+```bash
+# The same cache on the login node and the compute nodes:
+export XDG_CACHE_HOME=/shared/project/cache
+# On the login node, download the pinned pack release (about 30 MB):
+suMEDS-enrich --prefetch --rules PICdb
+# On a compute node:
+meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg.offline=true']"
+```
 
 Enrichment never overwrites what the ETL wrote: PIC's own descriptions, Chinese terms and `parent_codes`
 stay as they are, and new parents are appended after the existing ones. For PICdb it adds:
@@ -180,21 +217,21 @@ stay as they are, and new parents are appended after the existing ones. For PICd
 - **LOINC names**: the `LOINC/…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
     found gets its official LOINC name in `parent_names` (a map from parent code to name), and the lab
     code gets `vocabulary_id` `LOINC` and its `concept_code`. LOINC terms have no parents in the pack,
-    so no parents are added unless you pass `--loinc-hierarchy`, which appends the LOINC Parts on the
-    term's paths in the LOINC multiaxial hierarchy. The `ICD10/…` parents of diagnoses stay unnamed,
-    because WHO ICD-10 may not be redistributed and has no pack; with `--athena-csv` they get their
-    names and ancestors from Athena.
+    so no parents are added unless you set `loinc_hierarchy` (`--loinc-hierarchy` for `suMEDS-enrich`),
+    which appends the LOINC Parts on the term's paths in the LOINC multiaxial hierarchy. The `ICD10/…`
+    parents of diagnoses stay unnamed, because WHO ICD-10 may not be redistributed and has no pack; with
+    an Athena download (`athena_csv`) they get their names and ancestors from Athena.
 - **ICD-O-3 morphology** (`picdb-icdo3-morphology`): diagnoses coded in the Chinese edition of ICD-O-3
     (`M80000/3`; the PIC paper notes that diagnoses use both ICD-10 and ICD-O-3) get the OMOP ICDO3
     histology code (`ICDO3//8000/3`). suMEDS's versioned ontology data (sumeds-ontologies, pinned
     release) has no ICD-O-3 pack, so this is a tag that is validated only when Athena is configured
-    (`--athena-csv`).
+    (`athena_csv`).
 - **Same-dataset parents** (`picdb-diagnosis-prefix`, `picdb-admission-diagnosis-prefix`): a diagnosis
     code gets the nearest shorter code of the same family that exists in the build, skipping dots, for
     example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`, or a PIC extension
     such as `P07.300x001` under `P07.300`. Diagnoses and admission diagnoses are linked separately.
 
-The ETL alone writes no `ICDO3` parents and no same-dataset parents; `meds-extract-run` without suMEDS
+The ETL alone writes no `ICDO3` parents and no same-dataset parents; `skip_stages=[sumeds_enrich]`
 leaves them out. The same rules work with `suMEDS … --rules PICdb` to build a privacy-masked code
 catalog of the output.
 
@@ -229,10 +266,11 @@ event block declares exactly one description, a `_self` description reads only t
 and parents use OMOP vocabulary prefixes. `tests/test_sumeds_rules.py` checks that the rules are
 registered under `PICdb`, loads `sumeds_rules.yaml` with suMEDS, which rejects a malformed rule, and
 applies each rule through suMEDS to synthetic codes built from the code templates in the event config.
-`tests/test_run_with_enrichment.py` runs `suMEDS-extract spec=PICdb` over the synthetic release, offline
-against a tiny synthetic LOINC pack, and checks that the enrichment adds the expected names and parents,
-keeps everything the plain `meds-extract-run` build wrote, and is recorded in `dataset.json`. It also
-runs against an empty pack source, to check the soft failure and its `suMEDS-enrich` retry.
+`tests/test_run_with_enrichment.py` runs `meds-extract-run spec=PICdb` with its enrichment stage over
+the synthetic release, offline against a tiny synthetic LOINC pack, and checks that the enrichment adds
+the expected names and parents, keeps everything the plain build (`skip_stages=[sumeds_enrich]`) wrote,
+and is recorded in `dataset.json`. It also runs against an empty pack source, to check the soft failure
+and its `suMEDS-enrich` retry, and with `strict`.
 
 ```bash
 uv sync --group dev
@@ -244,7 +282,7 @@ uv run pre-commit run --all-files
 
 [`tests/regression/full_summary_stats.json`](tests/regression/full_summary_stats.json) is a
 [meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) fingerprint of
-the MEDS dataset this ETL builds from the full PICdb 1.1.0 release with `suMEDS-extract spec=PICdb`, so
+the MEDS dataset this ETL builds from the full PICdb 1.1.0 release with `meds-extract-run spec=PICdb`, so
 its code-metadata coverage includes the suMEDS enrichment. It covers subject, event and measurement
 counts, digests of the code vocabulary, per-subject, value and time distributions, code-metadata
 coverage, the splits and the schema. It names no code and reports no cell of fewer than 20 subjects and
@@ -261,7 +299,8 @@ scripts/summary_stats.sh full --input-dir $RAW_INPUT_DIR
 scripts/summary_stats.sh full --meds-dir $MEDS_OUTPUT_DIR
 ```
 
-Both print how the statistics changed against the committed baseline before overwriting it. Add
+Both print how the statistics changed against the committed baseline before overwriting it, and
+refuse a build whose enrichment failed (finish it with `suMEDS-enrich` first). Add
 `--compare` to check a build without writing anything; it exits 1 when
 [`tests/regression/policy.yaml`](tests/regression/policy.yaml) flags an error. Rebuilding the same
 commit reproduces the baseline exactly, so any finding is a change in the output. CI cannot rebuild the

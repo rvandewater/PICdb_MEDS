@@ -4,14 +4,14 @@
 # `D_ICD_DIAGNOSES.ICD10_CODE` and `LOINC/` parents from `D_LABITEMS.LOINC_CODE`. External-ontology
 # work is left to suMEDS (https://github.com/rvandewater/SumMEDS), which applies this file to
 # `metadata/codes.parquet`. `pyproject.toml` registers it with suMEDS under the spec's name, `PICdb`,
-# so one command runs the ETL and then the enrichment:
+# and the spec's `sumeds_enrich` post-stage names it, so one command runs the ETL and then the
+# enrichment:
 #
-#     suMEDS-extract spec=PICdb output_dir=$MEDS_OUTPUT_DIR
+#     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 #
 # and an existing build is enriched with
 #
-#     suMEDS-enrich $MEDS_OUTPUT_DIR/metadata/codes.parquet -o $MEDS_OUTPUT_DIR/metadata/codes.parquet \
-#       --rules PICdb
+#     suMEDS-enrich $MEDS_OUTPUT_DIR --rules PICdb
 #
 # Patterns match the code layouts in `event_configs.yaml`:
 #

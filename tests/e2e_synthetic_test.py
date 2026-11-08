@@ -4,7 +4,9 @@ PIC is credentialed and has no open demo release, so this test writes a handful 
 rows -- with the exact headers, file layout (`V1.1.0/*.csv`), CRLF line endings and timestamp format
 of the real v1.1.0 release -- and runs `meds-extract-run spec=PICdb` over them with downloading
 disabled. Driving it through the registered name rather than a path makes this test cover the
-entry-point registration too.
+entry-point registration too. It leaves out the spec's suMEDS enrichment stage
+(`skip_stages=[sumeds_enrich]`), which would otherwise fetch ontology packs;
+`test_run_with_enrichment.py` runs it over the same release, offline.
 
 None of the values below come from the real database.
 """
@@ -20,7 +22,7 @@ from pathlib import Path
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
-from meds import CodeMetadataSchema
+from meds import CodeMetadataSchema, DataSchema
 
 SPEC = "PICdb"
 RAW_RELEASE = "1.1.0"
@@ -570,21 +572,24 @@ def write_raw_release(root: Path) -> None:
             writer.writerows(rows)
 
 
-def run_command(runner: str, *args: str) -> str:
-    """Run an installed console script and fail the test with its output if it fails; return its stderr."""
+def run_command(runner: str, *args: str, env: dict[str, str] | None = None, ok: bool = True) -> str:
+    """Run an installed console script and fail the test with its output if it fails (or, with `ok=False`, if
+    it succeeds); return its stderr.
+
+    `env` is added to the environment.
+    """
     # Resolve the runner against `sysconfig`'s script dir rather than the ambient PATH, so the test
     # behaves the same under `uv run pytest` and a bare `pytest`. The dir is also prepended to the
-    # child's PATH, because the runner spawns stages (and `suMEDS-extract` spawns
-    # `meds-extract-run`) by bare name.
+    # child's PATH, because the runner spawns stages by bare name.
     scripts = Path(sysconfig.get_path("scripts"))
     executable = scripts / runner
     assert executable.exists(), f"{runner} is not installed in this environment ({sys.executable})."
-    env = os.environ | {"PATH": f"{scripts}{os.pathsep}{os.environ.get('PATH', '')}"}
+    env = os.environ | {"PATH": f"{scripts}{os.pathsep}{os.environ.get('PATH', '')}"} | (env or {})
 
     command = [str(executable), *args]
     result = subprocess.run(command, capture_output=True, check=False, env=env)
-    assert result.returncode == 0, (
-        f"{' '.join(command)} failed with return code {result.returncode}.\n"
+    assert (result.returncode == 0) == ok, (
+        f"{' '.join(command)} exited with return code {result.returncode}.\n"
         f"stdout:\n{result.stdout.decode()}\nstderr:\n{result.stderr.decode()}"
     )
     return result.stderr.decode()
@@ -597,7 +602,12 @@ def cohort(tmp_path_factory) -> Path:
     write_raw_release(raw)
     out = root / "MEDS_cohort"
     run_command(
-        "meds-extract-run", f"spec={SPEC}", f"output_dir={out}", "do_download=false", f"input_dir={raw}"
+        "meds-extract-run",
+        f"spec={SPEC}",
+        f"output_dir={out}",
+        "do_download=false",
+        f"input_dir={raw}",
+        "skip_stages=[sumeds_enrich]",
     )
     return out
 
@@ -623,6 +633,20 @@ def test_layout_and_identity(cohort: Path):
 
     splits = pl.read_parquet(metadata / "subject_splits.parquet")
     assert sorted(splits["subject_id"].to_list()) == [1, 2, 3]
+
+
+def test_dataset_json_describes_the_release_and_its_columns(cohort: Path, data: pl.DataFrame):
+    """The `etl:` descriptors and extension-column categories are written to `dataset.json`, and every other
+    extension column is listed under `other_extension_columns`."""
+    dataset_json = json.loads((cohort / "metadata" / "dataset.json").read_text())
+    assert dataset_json["license"] == "PhysioNet Credentialed Health Data License 1.5.0"
+    assert dataset_json["description_uri"] == f"https://physionet.org/content/picdb/{RAW_RELEASE}/"
+    ids = ["hadm_id", "icustay_id", "visit_id", "oper_id", "emr_id"]
+    assert dataset_json["raw_source_id_columns"] == ids
+    extension = set(data.columns) - set(DataSchema.schema().names)
+    assert set(dataset_json["other_extension_columns"]) == extension - set(ids)
+    assert "code_modifier_columns" not in dataset_json
+    assert "sumeds_enrichment" not in dataset_json
 
 
 def test_every_event_block_produces_events(data: pl.DataFrame):

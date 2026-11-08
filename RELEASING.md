@@ -90,7 +90,7 @@ update the trusted publisher under the project's *Publishing* settings on PyPI t
     ```
 
     It must print `True`: a wheel without the spec cannot run `meds-extract-run spec=PICdb`, and one
-    without the rules cannot enrich with `suMEDS-extract spec=PICdb`.
+    without the rules cannot enrich its output with the spec's `sumeds_enrich` stage.
 
 ## When something goes wrong
 

@@ -85,12 +85,17 @@ def test_rules_load_in_sumeds():
 
 
 def test_rules_are_registered_under_the_spec_name():
-    """`suMEDS-extract spec=PICdb` and `--rules PICdb` find the rules by this entry point."""
+    """The spec's `sumeds_enrich` stage and `--rules PICdb` find the rules by this entry point."""
     entry_points = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["entry-points"]
     assert entry_points["sumeds.rules"].keys() == entry_points["MEDS_extract.pipelines"].keys() == {"PICdb"}
     assert "PICdb" in registered_rules()
     assert registered_rules()["PICdb"] == "PICdb_MEDS:sumeds_rules.yaml"
     assert load_rules("PICdb") == load_rules(RULES_FP)
+
+
+def test_spec_enriches_with_these_rules():
+    """`meds-extract-run spec=PICdb` ends with suMEDS's enrichment stage, using these rules."""
+    assert CONFIG["etl"]["post_stages"] == [{"sumeds_enrich": {"rules": "PICdb"}}]
 
 
 def test_rules_file_is_package_data():

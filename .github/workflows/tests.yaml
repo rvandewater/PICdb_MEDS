@@ -3,8 +3,8 @@ name: Tests
 # This repo ships no Python -- only `event_configs.yaml`, `sumeds_rules.yaml` and the entry-point
 # registrations naming both `PICdb`. PIC is credentialed and has no open demo release, so CI runs the
 # ETL end-to-end over a small synthetic release with PIC's exact table layout
-# (tests/e2e_synthetic_test.py), and again with suMEDS enrichment against a tiny local ontology pack
-# (tests/test_run_with_enrichment.py).
+# (tests/e2e_synthetic_test.py), and again with the spec's suMEDS enrichment stage against a tiny
+# local ontology pack (tests/test_run_with_enrichment.py).
 
 on:
   push:

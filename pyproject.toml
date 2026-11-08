@@ -25,19 +25,20 @@ classifiers = [
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
-# The floor is 0.8.0: this config uses `_self` metadata blocks, aggregated joins and regex
-# conditionals in `parent_codes` (0.7), and spells its joins `_table.joins` (renamed from
-# `_table.join` in 0.8). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
+# The floor is 0.8.1: this config uses `_self` metadata blocks, aggregated joins and regex
+# conditionals in `parent_codes` (0.7), spells its joins `_table.joins` (renamed from `_table.join`
+# in 0.8), declares an extension stage (`etl.post_stages`) and sets the `dataset.json` descriptors
+# under `etl:` (both 0.8.1). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
 # (MESSY syntax, runner CLI); raise it deliberately when migrating.
 #
-# suMEDS provides `suMEDS-extract`, which runs this ETL and then enriches its code metadata with
-# the rules registered below, and `suMEDS-enrich` for an existing build. 0.6.1 is the first release
-# whose `suMEDS-extract` soft-fails enrichment (a site without internet still gets its ETL) and
-# records in `metadata/dataset.json` whether the build was enriched. It is capped below the next
-# minor for the same reason (its rules format and CLI are still 0.x).
+# suMEDS 0.6.2 registers the `sumeds_enrich` stage the spec declares, which enriches the code
+# metadata with the rules registered below, soft-fails (a site without internet still gets its ETL)
+# and records in `metadata/dataset.json` whether the build was enriched; it also provides
+# `suMEDS-enrich` for an existing build. It is capped below the next minor for the same reason (its
+# rules format and CLI are still 0.x).
 dependencies = [
-    "meds-extract[download]>=0.8.0,<0.9",
-    "sumeds>=0.6.1,<0.7",
+    "meds-extract[download]>=0.8.1,<0.9",
+    "sumeds>=0.6.2,<0.7",
 ]
 
 [dependency-groups]
@@ -51,7 +52,7 @@ dev = [
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
 
-# Registers the suMEDS rules under the same name, so `suMEDS-extract spec=PICdb` and
+# Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
 # `--rules PICdb` find them.
 [project.entry-points."sumeds.rules"]
 PICdb = "PICdb_MEDS:sumeds_rules.yaml"
