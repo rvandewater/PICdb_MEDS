@@ -212,47 +212,47 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-04T15:19:37.496900+00:00",
+    "created_at": "2026-11-04T00:33:49.378623+00:00",
     "dataset_name": "PICdb",
     "dataset_version": "1.1.0:0.0.3",
     "etl_name": "MEDS_transforms",
-    "etl_version": "0.7.0",
+    "etl_version": "0.7.1",
     "meds_version": "0.4.1",
     "present": true
   },
   "dataset_digest": {
     "by_file": {
-      "data/held_out/0.parquet": "sha256:8ac318aaeaad12d65c3b9a3fa9c55adb1bcb29eec0e9105bf77f1a6d62d3f7fa",
-      "data/held_out/1.parquet": "sha256:b119180c133b2b7a9ddae3809384bc866981d14e6934273e408236609d0f13c7",
-      "data/train/0.parquet": "sha256:7f8f116bbb9f75e803849cf148da5a3a0d780001e80a61ccd29db70b767011c8",
-      "data/train/1.parquet": "sha256:f70a0999c451d1d3f98e95b8c162d079311f5519933648159e0932fcb7a65864",
-      "data/train/10.parquet": "sha256:f092268be4a8c65ec8d63c8fae2a79cf6a44b55b1e311b190ba71b30412bf7b8",
-      "data/train/2.parquet": "sha256:91960821206f032737adcc91003abf5ee7f9e408f37be74b3b58af841578133f",
-      "data/train/3.parquet": "sha256:f13c0adee51f313c44d9c881c07e38bf1ee21a0da5d77cb5d5f4db273172cd57",
-      "data/train/4.parquet": "sha256:72cf3d9ba381c2088aa49e4a836bf6f5c4a24bda590488ef36cd4a4680e8f15d",
-      "data/train/5.parquet": "sha256:79d2f5354b2ccce772d7e7de3ea3521fa69d85a87d0d3804b33908ddaf5fed26",
-      "data/train/6.parquet": "sha256:5ff993eed1e410972e62c09d5d9809b4519273e5d42a38fc92030d3bb8c904bc",
-      "data/train/7.parquet": "sha256:82b167f24cd138af1f2036e3506fe35329e3e613bf397c128f0ccbf663433f15",
-      "data/train/8.parquet": "sha256:3e6af52ffd6c2de8d8ec1c070da5e14973ed9fbc6e63dee99c0c0c1ac6249025",
-      "data/train/9.parquet": "sha256:bade566b54f1a1707cc0fd68014c5ee82c9438fc23647ed60b72adabb41aeeeb",
-      "data/tuning/0.parquet": "sha256:c47f748784ee63090d0f06b527448114cd43385646f485e52c8b5cd131d85033",
-      "data/tuning/1.parquet": "sha256:d19947dc0aa71a8808c92a05060ebafc844476e97381f097706ecad81c71ec71",
-      "metadata/codes.parquet": "sha256:ecbbd1144444b2babc271c34b17e6d0a07c3d903f5cfbadb355af7eac8ba6413",
-      "metadata/dataset.json": "sha256:a61dda83844b636200ae58e19366270fcc9f367eb14d7e5335702407b9337e36",
-      "metadata/subject_splits.parquet": "sha256:65f53b91c1ea26668771643184cc1f0b2cc92afe40f3d211924505653e81bc28"
+      "data/held_out/0.parquet": "sha256:b7538627f552d1d8e7488eefcade662cc2c9bde875e88e200cef0b7f28764f8b",
+      "data/held_out/1.parquet": "sha256:a6d6b6a43d2dde5f3ae6b92e967541572f3aaf0602f4d7fcc6055acf5b9d2574",
+      "data/train/0.parquet": "sha256:0be826bd9676de2690e19e1fc51571e346698bb3746a994d6b7b3ff3f3806e96",
+      "data/train/1.parquet": "sha256:349d3276d5e06bab00ccc0f3cab673138d8d8f50690d6e842a94cb23ccb7bc80",
+      "data/train/10.parquet": "sha256:5629157c3ef796c0f410c433baad52e847ab4e279753667cd7427ecc4bdb6b9f",
+      "data/train/2.parquet": "sha256:96bfc0b77b7c30f4b67a8c81cf11525162e8c6fed3de0947f94de23209c22f29",
+      "data/train/3.parquet": "sha256:070584c76c928316221e7d20251b88ccba63be0ad551540b02b2ec6865f28ea5",
+      "data/train/4.parquet": "sha256:0af3b97a7811773e2b1c30b812fb39074c03e86430a60227d9e442d4ded99bf7",
+      "data/train/5.parquet": "sha256:7ddb015887e41e4044a1e3d526a466652ae3a53d81ce99dea149d3cbbf1edc82",
+      "data/train/6.parquet": "sha256:38f82ab9326e5f3876ee7952094a547a7d6ba218fbeed9524db67ccc913c8d8d",
+      "data/train/7.parquet": "sha256:3e73511f333d580d9c7192f4f3f54c54fb80ed6c07b992a89bae76be80ea8f3e",
+      "data/train/8.parquet": "sha256:30370359a9b21cffc32d1762fb5f176d219bf7a267b4d63b5204f27bafb310a5",
+      "data/train/9.parquet": "sha256:ae3934fa00e7c2cbad74c5d7d25c8d588f8e9eee648fe2c388bd1bf46b240b54",
+      "data/tuning/0.parquet": "sha256:9d8c8d4ebdf77c57bcd2ca98baab172b7561a4d76a6134b853e8f379e0e12f25",
+      "data/tuning/1.parquet": "sha256:02a351700692fd006e961646f1465881c76db249d4cdba99e59ff6839d89b204",
+      "metadata/codes.parquet": "sha256:4e2295730ef841972a74601e011e058d0ab5a030ddc1b49b8073b4663c1cc9b7",
+      "metadata/dataset.json": "sha256:cd9b88f8f3248bc896c00a89736327be6715dc314bfda85d414f47270986fd40",
+      "metadata/subject_splits.parquet": "sha256:5f3816cf564f7e793abd17881b271764f14d716be444f7956ec91f50c5108979"
     },
-    "code_metadata": "sha256:b980248c9b1cccb36e591e278a5d69649e14768775f05efe246c6cf18bad1ca8",
-    "combined": "sha256:bbe65ee54b0e9ca0219f4c5afa17558995a034ef044cc45bb932d156eb89caca",
+    "code_metadata": "sha256:d9dd0020ac46f5b5c2f73d1fdc471a6ea28fbe1e6d69b27ad6dfa7bc63a9d038",
+    "combined": "sha256:42f7b7673af5bf8c527b35b7289b89a9f7eb7cbb7fb7ad96cad47216b9ce51e1",
     "data": {
-      "digest": "sha256:43f8c0dfa7761182963fd0b41ab682f5854c55781ae5d438044b57642e7e17e5",
+      "digest": "sha256:05da0bef57b7e790699b8c1d6567d791bee494d1d8b75eb40cc80046dda90dfb",
       "n_files": 15
     },
-    "dataset_metadata": "sha256:c657210c9655b7a21a39456119535442312c8a4f2d323b9561efcf4c9894bab1",
+    "dataset_metadata": "sha256:f93d8a31715fda3a2948ee7146636215f2c101ead59a1ed6e0d8ee3fe4238aac",
     "method": "files",
     "n_files": 18,
-    "subject_splits": "sha256:c5d56dc0cf40b5a3df7b90cdb042c9ca667d62b0d8db66647526cf237fdb6132"
+    "subject_splits": "sha256:455d7469d08d6faa53d5c4f042591fa0abd1ef7758758c3c4cc7b6a9634ae909"
   },
-  "extracted_at": "2026-11-04T22:17:11.706316",
+  "extracted_at": "2026-11-10T22:15:33.631608",
   "layout": {
     "code_metadata_columns": {
       "ab_name_cn": "List(String)",
@@ -361,8 +361,22 @@
     ],
     "shard_names_digest": "sha256:7769e1bed36ed3b14d4bda1adaf0ce53aff187c8260e3625717e25b39d197ceb"
   },
-  "meds_summary_stats_version": "0.0.3",
+  "meds_summary_stats_version": "0.0.4",
   "per_subject": {
+    "measurements_per_day": {
+      "mean": 75.8848,
+      "n": 12881,
+      "quantiles": {
+        "p1": 2.26484,
+        "p25": 38.0489,
+        "p5": 13.0799,
+        "p50": 65.9216,
+        "p75": 98.2964,
+        "p95": 171.607,
+        "p99": 276.257
+      },
+      "std": 60.3469
+    },
     "n_events": {
       "mean": 215.702,
       "n": 12881,
@@ -440,7 +454,7 @@
     "n_subjects_in_splits_without_data": 0,
     "present": true
   },
-  "stats_schema_version": 1,
+  "stats_schema_version": 2,
   "time": {
     "by_year": {
       "2056": {
