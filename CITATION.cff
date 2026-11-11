@@ -16,4 +16,4 @@ message: If you use this software, please cite it using the metadata from this f
 repository-code: https://github.com/rvandewater/PICdb_MEDS/tree/0.0.3
 title: PICdb MEDS ETL
 type: software
-version: 0.0.4
+version: 0.0.5
