@@ -6,6 +6,10 @@
 #
 #     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 #
+# That command also enriches `metadata/codes.parquet` with suMEDS, as the `sumeds_enrich` post-stage
+# declared under `etl:` below, using `sumeds_rules.yaml`, registered with suMEDS under the same name.
+# `skip_stages=[sumeds_enrich]` leaves it out.
+#
 # Conventions used throughout:
 #
 # - Table keys are paths relative to the raw input directory without the format suffix. PhysioNet's
@@ -26,7 +30,7 @@
 #   Template wording follows the PIC documentation (https://physionet.org/content/picdb/1.1.0/) and
 #   the PIC descriptor paper (Zeng et al., Sci Data 2020, doi:10.1038/s41597-020-0355-4, CC BY 4.0).
 #   A `_self` template may reference only the code's own components, so each code gets exactly one
-#   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes, to which MEDS-Extract 0.7 attaches
+#   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes, to which MEDS-Extract 0.8 attaches
 #   no metadata; their meaning is defined by the MEDS standard.
 
 etl:
@@ -34,13 +38,30 @@ etl:
   # makes the spec self-describing when it is resolved by `pkg://` reference or filesystem path.
   dataset_name: PICdb
   n_subjects_per_shard: 1000
+  # Every v1.1.0 csv is UTF-8, Chinese columns included. MEDS-Extract's default since 0.8, `auto`,
+  # reads a valid UTF-8 file the same way, but it detects the codec of any other file and may decode
+  # it as cp1252 or latin-1, which garbles Chinese text in another encoding (such as GB18030).
+  # Declaring UTF-8 makes such a file fail loudly, as every non-UTF-8 file did before 0.8.
+  encoding: utf8
+  # Written to `metadata/dataset.json`, from the release's PhysioNet page. Keep the URI's version
+  # in step with `sources.dataset_version`.
+  license: PhysioNet Credentialed Health Data License 1.5.0
+  description_uri: https://physionet.org/content/picdb/1.1.0/
+  # PIC's admission, ICU stay, visit, operation and EMR record keys. Every other extension column is
+  # listed under `other_extension_columns` in `dataset.json`.
+  raw_source_id_columns: [hadm_id, icustay_id, visit_id, oper_id, emr_id]
+  # After the canonical stages, suMEDS adds parent codes and names to `metadata/codes.parquet` and
+  # records the result in `dataset.json` under `sumeds_enrichment`. If it cannot (no internet, say),
+  # the ETL still succeeds, unenriched, and `suMEDS-enrich <output_dir>` finishes it later.
+  post_stages:
+    - sumeds_enrich: { rules: PICdb }
 
 _defaults:
   subject_id: $SUBJECT_ID
 
 V1.1.0/PATIENTS:
   _table:
-    join:
+    joins:
       # Earliest in-hospital death time per subject. `min` over the fixed-width
       # "%Y-%m-%d %H:%M:%S" strings is chronological.
       V1.1.0/ADMISSIONS:
@@ -157,7 +178,7 @@ V1.1.0/ICUSTAYS:
 V1.1.0/DIAGNOSES_ICD:
   # Diagnoses carry no timestamp of their own; they are placed at hospital discharge.
   _table:
-    join:
+    joins:
       V1.1.0/ADMISSIONS:
         key: HADM_ID
         cols: [DISCHTIME]
@@ -281,7 +302,7 @@ V1.1.0/MICROBIOLOGYEVENTS:
   # `D_ITEMS` can fall back to a description in the same `_self` expression; a second description
   # source would be concatenated onto the `D_ITEMS` label.
   _table:
-    join:
+    joins:
       V1.1.0/D_ITEMS:
         left_on: SPEC_ITEMID
         right_on: ITEMID

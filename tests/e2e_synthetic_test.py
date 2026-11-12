@@ -4,7 +4,9 @@ PIC is credentialed and has no open demo release, so this test writes a handful 
 rows -- with the exact headers, file layout (`V1.1.0/*.csv`), CRLF line endings and timestamp format
 of the real v1.1.0 release -- and runs `meds-extract-run spec=PICdb` over them with downloading
 disabled. Driving it through the registered name rather than a path makes this test cover the
-entry-point registration too.
+entry-point registration too. It leaves out the spec's suMEDS enrichment stage
+(`skip_stages=[sumeds_enrich]`), which would otherwise fetch ontology packs;
+`test_run_with_enrichment.py` runs it over the same release, offline.
 
 None of the values below come from the real database.
 """
@@ -20,7 +22,7 @@ from pathlib import Path
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
-from meds import CodeMetadataSchema
+from meds import CodeMetadataSchema, DataSchema
 
 SPEC = "PICdb"
 RAW_RELEASE = "1.1.0"
@@ -155,6 +157,15 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE_CN": "J18.900",
             "Diag_Category": "Primary",
         },
+        # A PIC extension of J18.900: suMEDS's prefix rule links the two (test_run_with_enrichment.py).
+        {
+            "ROW_ID": "5",
+            "SUBJECT_ID": "1",
+            "HADM_ID": "101",
+            "SEQ_NUM": "2",
+            "ICD10_CODE_CN": "J18.900x001",
+            "Diag_Category": "Other",
+        },
         {
             "ROW_ID": "2",
             "SUBJECT_ID": "2",
@@ -188,6 +199,13 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICD10_CODE": "J18.9",
             "TITLE_CN": "肺炎",
             "TITLE": "Pneumonia, unspecified",
+        },
+        {
+            "ROW_ID": "5",
+            "ICD10_CODE_CN": "J18.900x001",
+            "ICD10_CODE": "J18.9",
+            "TITLE_CN": "测试肺炎",
+            "TITLE": "Synthetic pneumonia subtype",
         },
         {
             "ROW_ID": "2",
@@ -554,26 +572,42 @@ def write_raw_release(root: Path) -> None:
             writer.writerows(rows)
 
 
-@pytest.fixture(scope="module")
-def cohort(tmp_path_factory) -> Path:
+def run_command(runner: str, *args: str, env: dict[str, str] | None = None, ok: bool = True) -> str:
+    """Run an installed console script and fail the test with its output if it fails (or, with `ok=False`, if
+    it succeeds); return its stderr.
+
+    `env` is added to the environment.
+    """
     # Resolve the runner against `sysconfig`'s script dir rather than the ambient PATH, so the test
     # behaves the same under `uv run pytest` and a bare `pytest`. The dir is also prepended to the
     # child's PATH, because the runner spawns stages by bare name.
     scripts = Path(sysconfig.get_path("scripts"))
-    runner = scripts / "meds-extract-run"
-    assert runner.exists(), f"meds-extract-run is not installed in this environment ({sys.executable})."
-    env = os.environ | {"PATH": f"{scripts}{os.pathsep}{os.environ.get('PATH', '')}"}
+    executable = scripts / runner
+    assert executable.exists(), f"{runner} is not installed in this environment ({sys.executable})."
+    env = os.environ | {"PATH": f"{scripts}{os.pathsep}{os.environ.get('PATH', '')}"} | (env or {})
 
+    command = [str(executable), *args]
+    result = subprocess.run(command, capture_output=True, check=False, env=env)
+    assert (result.returncode == 0) == ok, (
+        f"{' '.join(command)} exited with return code {result.returncode}.\n"
+        f"stdout:\n{result.stdout.decode()}\nstderr:\n{result.stderr.decode()}"
+    )
+    return result.stderr.decode()
+
+
+@pytest.fixture(scope="module")
+def cohort(tmp_path_factory) -> Path:
     root = tmp_path_factory.mktemp("picdb")
     raw = root / "raw"
     write_raw_release(raw)
     out = root / "MEDS_cohort"
-
-    command = [str(runner), f"spec={SPEC}", f"output_dir={out}", "do_download=false", f"input_dir={raw}"]
-    result = subprocess.run(command, capture_output=True, check=False, env=env)
-    assert result.returncode == 0, (
-        f"{' '.join(command)} failed with return code {result.returncode}.\n"
-        f"stdout:\n{result.stdout.decode()}\nstderr:\n{result.stderr.decode()}"
+    run_command(
+        "meds-extract-run",
+        f"spec={SPEC}",
+        f"output_dir={out}",
+        "do_download=false",
+        f"input_dir={raw}",
+        "skip_stages=[sumeds_enrich]",
     )
     return out
 
@@ -599,6 +633,20 @@ def test_layout_and_identity(cohort: Path):
 
     splits = pl.read_parquet(metadata / "subject_splits.parquet")
     assert sorted(splits["subject_id"].to_list()) == [1, 2, 3]
+
+
+def test_dataset_json_describes_the_release_and_its_columns(cohort: Path, data: pl.DataFrame):
+    """The `etl:` descriptors and extension-column categories are written to `dataset.json`, and every other
+    extension column is listed under `other_extension_columns`."""
+    dataset_json = json.loads((cohort / "metadata" / "dataset.json").read_text())
+    assert dataset_json["license"] == "PhysioNet Credentialed Health Data License 1.5.0"
+    assert dataset_json["description_uri"] == f"https://physionet.org/content/picdb/{RAW_RELEASE}/"
+    ids = ["hadm_id", "icustay_id", "visit_id", "oper_id", "emr_id"]
+    assert dataset_json["raw_source_id_columns"] == ids
+    extension = set(data.columns) - set(DataSchema.schema().names)
+    assert set(dataset_json["other_extension_columns"]) == extension - set(ids)
+    assert "code_modifier_columns" not in dataset_json
+    assert "sumeds_enrichment" not in dataset_json
 
 
 def test_every_event_block_produces_events(data: pl.DataFrame):
@@ -691,16 +739,18 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["MEDICATION//START//Vancomycin Injection//mg"]["drug_name_cn"] == ["万古霉素"]
     assert by_code["SYMPTOM//fever//+"]["symptom_name_cn"] == ["发热"]
 
-    # An ICD-O-3 morphology code gets no parent from the ETL; suMEDS tags it through
-    # `sumeds_rules.yaml` (see `test_sumeds_rules.py`).
+    # An ICD-O-3 morphology code gets no parent from the ETL, and an extended code gets no parent
+    # from the same dataset; suMEDS adds both through `sumeds_rules.yaml` (see
+    # `test_run_with_enrichment.py`).
     assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
     assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
+    assert by_code["DIAGNOSIS//ICD10_CN//J18.900x001"]["parent_codes"] == ["ICD10/J18.9"]
 
 
 def test_code_descriptions(codes: pl.DataFrame):
     by_code = dict(zip(codes["code"], codes["description"], strict=True))
 
-    # Every code is described except the MEDS-reserved literal codes, to which MEDS-Extract 0.7
+    # Every code is described except the MEDS-reserved literal codes, to which MEDS-Extract 0.8
     # attaches no metadata.
     assert sorted(code for code, desc in by_code.items() if desc is None) == ["MEDS_BIRTH", "MEDS_DEATH"]
 

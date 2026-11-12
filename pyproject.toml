@@ -12,7 +12,7 @@ authors = [
 ]
 description = "An ETL pipeline to extract the Paediatric Intensive Care (PIC) database into the MEDS format."
 readme = "README.md"
-# Mirrors MEDS-Extract 0.7's own interpreter range; a looser range here admits interpreters it
+# Mirrors MEDS-Extract 0.8's own interpreter range; a looser range here admits interpreters it
 # cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
@@ -25,10 +25,20 @@ classifiers = [
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
-# The floor is 0.7.0: this config uses `_self` metadata blocks, aggregated joins and regex
-# conditionals in `parent_codes`, none of which exist before 0.7.
+# The floor is 0.8.1: this config uses `_self` metadata blocks, aggregated joins and regex
+# conditionals in `parent_codes` (0.7), spells its joins `_table.joins` (renamed from `_table.join`
+# in 0.8), declares an extension stage (`etl.post_stages`) and sets the `dataset.json` descriptors
+# under `etl:` (both 0.8.1). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
+# (MESSY syntax, runner CLI); raise it deliberately when migrating.
+#
+# suMEDS 0.6.2 registers the `sumeds_enrich` stage the spec declares, which enriches the code
+# metadata with the rules registered below, soft-fails (a site without internet still gets its ETL)
+# and records in `metadata/dataset.json` whether the build was enriched; it also provides
+# `suMEDS-enrich` for an existing build. It is capped below the next minor for the same reason (its
+# rules format and CLI are still 0.x).
 dependencies = [
-    "meds-extract[download]>=0.7.0,<0.8",
+    "meds-extract[download]>=0.8.1,<0.9",
+    "sumeds>=0.6.2,<0.7",
 ]
 
 [dependency-groups]
@@ -36,13 +46,16 @@ dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
-    # tests/test_sumeds_rules.py loads the packaged rules with suMEDS itself.
-    "sumeds>=0.4",
     "shfmt-py==3.12.0.2",
 ]
 
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
+
+# Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
+# `--rules PICdb` find them.
+[project.entry-points."sumeds.rules"]
+PICdb = "PICdb_MEDS:sumeds_rules.yaml"
 
 # Ship the YAML files as package data: `event_configs.yaml` (the MESSY spec, i.e. the whole ETL) and
 # `sumeds_rules.yaml` (the suMEDS enrichment rules), so both resolve through `importlib.resources`
