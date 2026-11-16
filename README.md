@@ -140,7 +140,11 @@ PIC's dictionary tables:
 - **Chinese source terms**: kept in their own columns (`title_cn`, `label_cn`, `drug_name_cn`,
     `org_name_cn`, `spec_type_desc_cn`, `ab_name_cn`, `symptom_name_cn`). Codes are always built from the
     English or ID columns.
-- **Extra dictionary fields**: `fluid`, `category` and `unit`.
+- **`unit`**: the unit of the code's `numeric_value`, as recorded. Labs, chart and output items, fluid
+    input and prescription starts take it from the row's own unit column (`VALUEUOM`, `AMOUNTUOM`,
+    `DOSE_UNIT_RX`), which is also the code's last part; an `UNK` code has none. Intra-operative vital
+    signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit.
+- **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
 

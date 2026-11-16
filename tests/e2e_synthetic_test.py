@@ -733,6 +733,18 @@ def test_code_metadata(codes: pl.DataFrame):
 
     assert by_code["CHART//1001//bpm"]["description"] == "Heart Rate"
     assert by_code["SURGERY_VITAL//SV1"]["unit"] == ["bpm"]
+    # Every other numeric code also carries its unit, from the row's own unit column; an `UNK` code
+    # has none.
+    for code, unit in [
+        ("LAB//5001//mmol/L", "mmol/L"),
+        ("CHART//1001//bpm", "bpm"),
+        ("FLUID_INPUT//ml", "ml"),
+        ("OUTPUT//2001//ml", "ml"),
+        ("MEDICATION//START//Vancomycin Injection//mg", "mg"),
+    ]:
+        assert by_code[code]["unit"] == [unit], code
+    for code in ["LAB//5002//UNK", "MEDICATION//START//Vitamin K1 Injection//UNK"]:
+        assert not by_code[code]["unit"], code
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["description"] == "Staphylococcus aureus"
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["org_name_cn"] == ["金黄色葡萄球菌"]
     assert by_code["MICROBIOLOGY//SUSCEPTIBILITY//A1//S"]["description"] == "Vancomycin"

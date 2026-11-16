@@ -32,6 +32,10 @@
 #   A `_self` template may reference only the code's own components, so each code gets exactly one
 #   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes, to which MEDS-Extract 0.8 attaches
 #   no metadata; their meaning is defined by the MEDS standard.
+# - Every code whose events carry a numeric value with a recorded unit gets that unit as `unit` in
+#   `metadata/codes.parquet`, as recorded: from the row's own unit column where the code already ends
+#   in it (labs, chart and output items, fluid input, prescription doses), and from
+#   `D_ITEMS.UNITNAME` for intra-operative vital signs. Codes are unchanged.
 
 etl:
   # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
@@ -216,6 +220,9 @@ V1.1.0/LABEVENTS:
         # Only well-formed LOINC codes (digits, dash, check digit) are emitted as parents.
         parent_codes: >-
           f"LOINC/{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
+      # The row's own unit, which is also the code's last part (null for an `UNK` code).
+      _self:
+        unit: $VALUEUOM
 
 V1.1.0/CHARTEVENTS:
   chart:
@@ -230,6 +237,10 @@ V1.1.0/CHARTEVENTS:
         description: $LABEL
         label_cn: $LABEL_CN
         category: $CATEGORY
+      # The row's own unit, which is also the code's last part (null for an `UNK` code). It is
+      # preferred over `D_ITEMS.UNITNAME` because it is what each row records.
+      _self:
+        unit: $VALUEUOM
 
 V1.1.0/INPUTEVENTS:
   # PIC's input events record fluid intake amounts only; there is no item identifier. The paper
@@ -245,6 +256,7 @@ V1.1.0/INPUTEVENTS:
         description: >-
           f"Fluid input amount in {$AMOUNTUOM ?? 'UNK'}, calculated each morning for ICU patients; the
           table has no item identifier (PIC INPUTEVENTS.AMOUNT, AMOUNTUOM)"
+        unit: $AMOUNTUOM
 
 V1.1.0/OUTPUTEVENTS:
   output:
@@ -259,6 +271,8 @@ V1.1.0/OUTPUTEVENTS:
         description: $LABEL
         label_cn: $LABEL_CN
         category: $CATEGORY
+      _self:
+        unit: $VALUEUOM
 
 V1.1.0/PRESCRIPTIONS:
   # `DRUG_NAME` is the Chinese name and `DRUG_NAME_EN` its English translation (the shipped SQL
@@ -278,6 +292,8 @@ V1.1.0/PRESCRIPTIONS:
           PRESCRIPTIONS.DRUG_NAME_EN, DOSE_UNIT_RX)"
         drug_name_cn: $DRUG_NAME
         drug_name_generic: $DRUG_NAME_GENERIC
+        # The dose unit, which is also the code's last part (null for an `UNK` code).
+        unit: $DOSE_UNIT_RX
   medication_end:
     code: 'f"MEDICATION//END//{$DRUG_NAME_EN}"'
     time: '$ENDDATE::"%Y-%m-%d %H:%M:%S"'
