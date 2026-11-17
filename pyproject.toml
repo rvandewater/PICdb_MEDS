@@ -21,7 +21,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 # The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`; the only
-# Python is the `collapse_unit_metadata` post-stage (`unit_metadata.py`), registered below. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
+# Python is the `picdb_collapse_unit_metadata` post-stage (`unit_metadata.py`), registered below. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
@@ -54,7 +54,7 @@ PICdb = "PICdb_MEDS:event_configs.yaml"
 
 # The post-stage that makes codes.parquet's `unit` one String per code (`etl.post_stages`).
 [project.entry-points."MEDS_transforms.stages"]
-collapse_unit_metadata = "PICdb_MEDS.unit_metadata:main"
+picdb_collapse_unit_metadata = "PICdb_MEDS.unit_metadata:main"
 
 # Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
 # `--rules PICdb` find them.

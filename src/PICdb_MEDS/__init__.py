@@ -11,7 +11,7 @@ the ETL and its enrichment run as one command::
     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 
 and the plain ETL with ``skip_stages=[sumeds_enrich]`` added. The only code is the first post-stage,
-``collapse_unit_metadata`` (``PICdb_MEDS.unit_metadata``, registered in ``MEDS_transforms.stages``),
+``picdb_collapse_unit_metadata`` (``PICdb_MEDS.unit_metadata``, registered in ``MEDS_transforms.stages``),
 which makes ``unit`` in ``metadata/codes.parquet`` one String per code.
 
 This package exists so the YAML files are addressable as package data —

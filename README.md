@@ -42,7 +42,7 @@ When you run this, the program will:
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
-3. Make each code's `unit` one String and link unit siblings (the `collapse_unit_metadata` stage; see
+3. Make each code's `unit` one String and link unit siblings (the `picdb_collapse_unit_metadata` stage; see
     the `unit` entry under [Code metadata](#code-metadata)), then enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package), as the spec's last stage, `sumeds_enrich`, using the rules this
     package ships: LOINC names, ICD-O-3 morphology tags and same-dataset diagnosis parents. If it cannot
@@ -146,7 +146,7 @@ PIC's dictionary tables:
     `DOSE_UNIT_RX`), which is also the code's last part; an `UNK` code has none. Intra-operative vital
     signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit. `unit` is a
     nullable String, one per code; MEDS does not standardise this column. MEDS-Extract writes it as a
-    list, so the first post-stage, `collapse_unit_metadata`
+    list, so the first post-stage, `picdb_collapse_unit_metadata`
     ([`unit_metadata.py`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/unit_metadata.py)),
     turns it into one String per code and fails if a code has more than one unit. PIC's item labels
     are not used as a unit source: they state a unit in a recognisable form for very few items, and
@@ -170,7 +170,7 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
-    - collapse_unit_metadata
+    - picdb_collapse_unit_metadata
     - sumeds_enrich: {rules: PICdb}
 ```
 
