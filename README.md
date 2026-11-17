@@ -42,13 +42,14 @@ When you run this, the program will:
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
-3. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
+3. Make each code's `unit` one String and link unit siblings (the `collapse_unit_metadata` stage; see
+    the `unit` entry under [Code metadata](#code-metadata)), then enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package), as the spec's last stage, `sumeds_enrich`, using the rules this
     package ships: LOINC names, ICD-O-3 morphology tags and same-dataset diagnosis parents. If it cannot
     (no internet, say), the ETL still succeeds, unenriched, and `suMEDS-enrich $MEDS_OUTPUT_DIR`
     finishes it later (see [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
 
-For the plain ETL without step 3, add `skip_stages=[sumeds_enrich]`.
+For the plain ETL without the suMEDS enrichment, add `skip_stages=[sumeds_enrich]`.
 
 If you already have the PhysioNet release on disk, skip the download and point `input_dir` at the
 release root, the directory that contains `V1.1.0/`:
@@ -143,7 +144,19 @@ PIC's dictionary tables:
 - **`unit`**: the unit of the code's `numeric_value`, as recorded. Labs, chart and output items, fluid
     input and prescription starts take it from the row's own unit column (`VALUEUOM`, `AMOUNTUOM`,
     `DOSE_UNIT_RX`), which is also the code's last part; an `UNK` code has none. Intra-operative vital
-    signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit.
+    signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit. `unit` is a
+    nullable String, one per code; MEDS does not standardise this column. MEDS-Extract writes it as a
+    list, so the first post-stage, `collapse_unit_metadata`
+    ([`unit_metadata.py`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/unit_metadata.py)),
+    turns it into one String per code and fails if a code has more than one unit. PIC's item labels
+    are not used as a unit source: they state a unit in a recognisable form for very few items, and
+    where the data records a unit, it mostly differs from the label's.
+- **Unit siblings**: codes for the same item or drug that differ only in their last `//{unit}` part
+    (e.g. `LAB//{itemid}//{unit}`) get the code without it (`LAB//{itemid}`) appended to
+    `parent_codes`, and that code gets a row of its own: the siblings' description if they all share
+    it (labs: the `D_LABITEMS` label; prescription starts name their dose unit, so theirs is null), the
+    parents they all share (e.g. the LOINC code), and a null `unit`. The same post-stage adds them,
+    before suMEDS, which keeps these parents as they are.
 - **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
@@ -157,6 +170,7 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
+    - collapse_unit_metadata
     - sumeds_enrich: {rules: PICdb}
 ```
 
