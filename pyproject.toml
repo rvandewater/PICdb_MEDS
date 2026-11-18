@@ -12,7 +12,7 @@ authors = [
 ]
 description = "An ETL pipeline to extract the Paediatric Intensive Care (PIC) database into the MEDS format."
 readme = "README.md"
-# Mirrors MEDS-Extract 0.8's own interpreter range; a looser range here admits interpreters it
+# Mirrors MEDS-Extract 0.9's own interpreter range; a looser range here admits interpreters it
 # cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
@@ -21,14 +21,15 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 # The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`; the only
-# Python is the `picdb_collapse_unit_metadata` post-stage (`unit_metadata.py`), registered below. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
+# Python is the `picdb_unit_metadata` post-stage (`unit_metadata.py`), registered below. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
-# The floor is 0.8.1: this config uses `_self` metadata blocks, aggregated joins and regex
+# The floor is 0.9.0: this config uses `_self` metadata blocks, aggregated joins and regex
 # conditionals in `parent_codes` (0.7), spells its joins `_table.joins` (renamed from `_table.join`
 # in 0.8), declares an extension stage (`etl.post_stages`) and sets the `dataset.json` descriptors
-# under `etl:` (both 0.8.1). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
+# under `etl:` (both 0.8.1), and relies on `unit` in codes.parquet being one String per code (0.9.0,
+# which fails on a code with more than one unit). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
 # (MESSY syntax, runner CLI); raise it deliberately when migrating.
 #
 # suMEDS 0.6.2 registers the `sumeds_enrich` stage the spec declares, which enriches the code
@@ -37,7 +38,7 @@ classifiers = [
 # `suMEDS-enrich` for an existing build. It is capped below the next minor for the same reason (its
 # rules format and CLI are still 0.x).
 dependencies = [
-    "meds-extract[download]>=0.8.1,<0.9",
+    "meds-extract[download]>=0.9.0,<0.10",
     "sumeds>=0.6.2,<0.7",
 ]
 
@@ -52,9 +53,9 @@ dev = [
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
 
-# The post-stage that makes codes.parquet's `unit` one String per code (`etl.post_stages`).
+# The post-stage that links codes in codes.parquet that differ only in their unit (`etl.post_stages`).
 [project.entry-points."MEDS_transforms.stages"]
-picdb_collapse_unit_metadata = "PICdb_MEDS.unit_metadata:main"
+picdb_unit_metadata = "PICdb_MEDS.unit_metadata:main"
 
 # Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
 # `--rules PICdb` find them.

@@ -11,8 +11,8 @@ the ETL and its enrichment run as one command::
     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 
 and the plain ETL with ``skip_stages=[sumeds_enrich]`` added. The only code is the first post-stage,
-``picdb_collapse_unit_metadata`` (``PICdb_MEDS.unit_metadata``, registered in ``MEDS_transforms.stages``),
-which makes ``unit`` in ``metadata/codes.parquet`` one String per code.
+``picdb_unit_metadata`` (``PICdb_MEDS.unit_metadata``, registered in ``MEDS_transforms.stages``),
+which links codes in ``metadata/codes.parquet`` that differ only in their unit.
 
 This package exists so the YAML files are addressable as package data —
 ``importlib.resources.files("PICdb_MEDS")`` — from an installed wheel. Nothing else here is importable API.

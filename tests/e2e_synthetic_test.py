@@ -758,7 +758,7 @@ def test_code_metadata(codes: pl.DataFrame):
         assert by_code[code]["unit"] == unit, code
     for code in ["LAB//5002//UNK", "MEDICATION//START//Vitamin K1 Injection//UNK"]:
         assert by_code[code]["unit"] is None, code
-    # The `picdb_collapse_unit_metadata` post-stage makes `unit` one String per code.
+    # MEDS-Extract (>= 0.9) writes `unit` as one String per code.
     assert codes.schema["unit"] == pl.String
     # Unit siblings get the code without the unit as a parent, and that code gets a row of its own
     # with what the siblings share: the description and the LOINC parent; no unit.
