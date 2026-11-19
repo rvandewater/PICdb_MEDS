@@ -744,18 +744,21 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10/J18.9"]
 
     assert by_code["CHART//1001//bpm"]["description"] == "Heart Rate"
-    assert by_code["SURGERY_VITAL//SV1"]["unit"] == "bpm"
+    # `unit` is written in UCUM by suMEDS's `sumeds_normalize_units`, which keeps the spelling as
+    # recorded in `unit_source_value`; the code keeps its name.
+    sv1 = by_code["SURGERY_VITAL//SV1"]
+    assert (sv1["unit"], sv1["unit_source_value"]) == ("{beats}/min", "bpm")
     # Every other numeric code also carries its unit, from the row's own unit column; an `UNK` code
     # has none.
-    for code, unit in [
-        ("LAB//5001//mmol/L", "mmol/L"),
-        ("LAB//5001//mg/dL", "mg/dL"),
-        ("CHART//1001//bpm", "bpm"),
-        ("FLUID_INPUT//ml", "ml"),
-        ("OUTPUT//2001//ml", "ml"),
-        ("MEDICATION//START//Vancomycin Injection//mg", "mg"),
+    for code, unit, recorded in [
+        ("LAB//5001//mmol/L", "mmol/L", "mmol/L"),
+        ("LAB//5001//mg/dL", "mg/dL", "mg/dL"),
+        ("CHART//1001//bpm", "{beats}/min", "bpm"),
+        ("FLUID_INPUT//ml", "mL", "ml"),
+        ("OUTPUT//2001//ml", "mL", "ml"),
+        ("MEDICATION//START//Vancomycin Injection//mg", "mg", "mg"),
     ]:
-        assert by_code[code]["unit"] == unit, code
+        assert (by_code[code]["unit"], by_code[code]["unit_source_value"]) == (unit, recorded), code
     for code in ["LAB//5002//UNK", "MEDICATION//START//Vitamin K1 Injection//UNK"]:
         assert by_code[code]["unit"] is None, code
     # MEDS-Extract (>= 0.9) writes `unit` as one String per code.

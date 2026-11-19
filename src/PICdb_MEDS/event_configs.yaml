@@ -36,7 +36,9 @@
 # - Every code whose events carry a numeric value with a recorded unit gets that unit as `unit` in
 #   `metadata/codes.parquet`, as recorded: from the row's own unit column where the code already ends
 #   in it (labs, chart and output items, fluid input, prescription doses), and from
-#   `D_ITEMS.UNITNAME` for intra-operative vital signs. Codes are unchanged.
+#   `D_ITEMS.UNITNAME` for intra-operative vital signs. Codes are unchanged. suMEDS's
+#   `sumeds_normalize_units` post-stage then writes `unit` in UCUM (`ml` -> `mL`, `bpm` ->
+#   `{beats}/min`) and keeps the spelling as recorded in `unit_source_value`.
 
 etl:
   # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
@@ -64,6 +66,9 @@ etl:
     # `unit` as one String per code and fails if a code has more than one unit. It runs before suMEDS, so the enrichment, its coverage record and
     # a later `suMEDS-enrich` retry all see the same table, and the new rows are enriched too.
     - picdb_unit_metadata
+    # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
+    # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
+    - sumeds_normalize_units
     - sumeds_enrich: { rules: PICdb }
 
 _defaults:

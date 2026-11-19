@@ -97,6 +97,7 @@ def test_spec_enriches_with_these_rules():
     """`meds-extract-run spec=PICdb` ends with suMEDS's enrichment stage, using these rules."""
     assert CONFIG["etl"]["post_stages"] == [
         "picdb_unit_metadata",
+        "sumeds_normalize_units",
         {"sumeds_enrich": {"rules": "PICdb"}},
     ]
 
