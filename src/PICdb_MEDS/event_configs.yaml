@@ -8,7 +8,8 @@
 #
 # That command also enriches `metadata/codes.parquet` with suMEDS, as the `sumeds_enrich` post-stage
 # declared under `etl:` below, using `sumeds_rules.yaml`, registered with suMEDS under the same name.
-# `skip_stages=[sumeds_enrich]` leaves it out.
+# `skip_stages=[sumeds_enrich]` leaves it out. The first post-stage, suMEDS's
+# `sumeds_link_unit_siblings`, links codes that differ only in their unit.
 #
 # Conventions used throughout:
 #
@@ -35,7 +36,9 @@
 # - Every code whose events carry a numeric value with a recorded unit gets that unit as `unit` in
 #   `metadata/codes.parquet`, as recorded: from the row's own unit column where the code already ends
 #   in it (labs, chart and output items, fluid input, prescription doses), and from
-#   `D_ITEMS.UNITNAME` for intra-operative vital signs. Codes are unchanged.
+#   `D_ITEMS.UNITNAME` for intra-operative vital signs. Codes are unchanged. suMEDS's
+#   `sumeds_normalize_units` post-stage then writes `unit` in UCUM (`ml` -> `mL`, `bpm` ->
+#   `{beats}/min`) and keeps the spelling as recorded in `unit_source_value`.
 
 etl:
   # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
@@ -58,6 +61,17 @@ etl:
   # records the result in `dataset.json` under `sumeds_enrichment`. If it cannot (no internet, say),
   # the ETL still succeeds, unenriched, and `suMEDS-enrich <output_dir>` finishes it later.
   post_stages:
+    # First, suMEDS's `sumeds_link_unit_siblings` (suMEDS's docs/unit_siblings.md, default options)
+    # gives codes that differ only in their last `//<unit>` part the code without it as a parent,
+    # with a row of its own; a code whose unit was not recorded (`…//UNK`) joins its item's siblings.
+    # MEDS-Extract (>= 0.9) itself writes `unit` as one String per code and fails if a code has more
+    # than one unit. It runs before unit normalisation and the enrichment, so the enrichment, its
+    # coverage record and a later `suMEDS-enrich` retry all see the same table, and the new rows are
+    # enriched too.
+    - sumeds_link_unit_siblings
+    # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
+    # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
+    - sumeds_normalize_units
     - sumeds_enrich: { rules: PICdb }
 
 _defaults:

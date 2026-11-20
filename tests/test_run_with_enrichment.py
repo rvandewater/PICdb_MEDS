@@ -192,8 +192,10 @@ def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_
 
     # The LOINC parent the ETL wrote is found in the pack: it keeps its spelling and place and gets
     # its LOINC name; the lab keeps the label PIC gives it.
+    # The unit-sibling parent `LAB//5001` (from the `sumeds_link_unit_siblings` post-stage, which runs
+    # first) names no vocabulary, so suMEDS keeps it as it is.
     lab = enriched_codes["LAB//5001//mmol/L"]
-    assert lab["parent_codes"] == ["LOINC/2823-3"]
+    assert lab["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
     assert names(lab["parent_names"]) == {"LOINC/2823-3": title("LOINC", "2823-3")}
     assert (lab["description"], lab["vocabulary_id"], lab["concept_code"]) == ("Potassium", "LOINC", "2823-3")
 

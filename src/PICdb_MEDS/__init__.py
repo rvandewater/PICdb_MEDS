@@ -1,6 +1,6 @@
 """The PIC (Paediatric Intensive Care database) MEDS ETL — a configuration package, not a library.
 
-This distribution ships no code. Its content is ``PICdb_MEDS/event_configs.yaml``, a MESSY
+Its content is ``PICdb_MEDS/event_configs.yaml``, a MESSY
 (MEDS-Extract Specification Syntax YAML) document declaring where the raw PIC data comes from and how
 every event is extracted from it, and ``PICdb_MEDS/sumeds_rules.yaml``, the suMEDS rules that enrich
 the code metadata it writes. ``pyproject.toml`` registers the first with MEDS-Extract's
@@ -10,8 +10,9 @@ the ETL and its enrichment run as one command::
 
     meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR
 
-and the plain ETL with ``skip_stages=[sumeds_enrich]`` added.
+and the plain ETL with ``skip_stages=[sumeds_enrich]`` added. Its first post-stage, suMEDS's
+``sumeds_link_unit_siblings``, links codes in ``metadata/codes.parquet`` that differ only in their unit.
 
 This package exists so the YAML files are addressable as package data —
-``importlib.resources.files("PICdb_MEDS")`` — from an installed wheel. Nothing here is importable API.
+``importlib.resources.files("PICdb_MEDS")`` — from an installed wheel. Nothing else here is importable API.
 """

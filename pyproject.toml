@@ -12,7 +12,7 @@ authors = [
 ]
 description = "An ETL pipeline to extract the Paediatric Intensive Care (PIC) database into the MEDS format."
 readme = "README.md"
-# Mirrors MEDS-Extract 0.8's own interpreter range; a looser range here admits interpreters it
+# Mirrors MEDS-Extract 0.9's own interpreter range; a looser range here admits interpreters it
 # cannot be installed on.
 requires-python = ">=3.11.4,<3.14"
 classifiers = [
@@ -20,25 +20,28 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-# This package ships no Python: the whole ETL is `event_configs.yaml`, run by MEDS-Extract's own
-# `meds-extract-run`. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
+# The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`; there is no
+# Python of its own. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
-# The floor is 0.8.1: this config uses `_self` metadata blocks, aggregated joins and regex
+# The floor is 0.9.0: this config uses `_self` metadata blocks, aggregated joins and regex
 # conditionals in `parent_codes` (0.7), spells its joins `_table.joins` (renamed from `_table.join`
 # in 0.8), declares an extension stage (`etl.post_stages`) and sets the `dataset.json` descriptors
-# under `etl:` (both 0.8.1). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
+# under `etl:` (both 0.8.1), and relies on `unit` in codes.parquet being one String per code (0.9.0,
+# which fails on a code with more than one unit). The cap is the next minor, because MEDS-Extract 0.x minors are breaking
 # (MESSY syntax, runner CLI); raise it deliberately when migrating.
 #
 # suMEDS 0.6.2 registers the `sumeds_enrich` stage the spec declares, which enriches the code
 # metadata with the rules registered below, soft-fails (a site without internet still gets its ETL)
 # and records in `metadata/dataset.json` whether the build was enriched; it also provides
-# `suMEDS-enrich` for an existing build. It is capped below the next minor for the same reason (its
-# rules format and CLI are still 0.x).
+# `suMEDS-enrich` for an existing build. 0.6.6 registers the `sumeds_link_unit_siblings` post-stage,
+# which links codes that differ only in their unit (it replaced this package's own
+# `picdb_unit_metadata`). It is capped below the next minor for the same reason (its rules format and
+# CLI are still 0.x).
 dependencies = [
-    "meds-extract[download]>=0.8.1,<0.9",
-    "sumeds>=0.6.2,<0.7",
+    "meds-extract[download]>=0.9.0,<0.10",
+    "sumeds>=0.6.6,<0.7",
 ]
 
 [dependency-groups]

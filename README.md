@@ -42,13 +42,15 @@ When you run this, the program will:
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
-3. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
+3. Link unit siblings (suMEDS's `sumeds_link_unit_siblings` stage; see
+    the `unit` entry under [Code metadata](#code-metadata)), write `unit` in UCUM (suMEDS's
+    `sumeds_normalize_units` stage), then enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package), as the spec's last stage, `sumeds_enrich`, using the rules this
     package ships: LOINC names, ICD-O-3 morphology tags and same-dataset diagnosis parents. If it cannot
     (no internet, say), the ETL still succeeds, unenriched, and `suMEDS-enrich $MEDS_OUTPUT_DIR`
     finishes it later (see [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
 
-For the plain ETL without step 3, add `skip_stages=[sumeds_enrich]`.
+For the plain ETL without the suMEDS enrichment, add `skip_stages=[sumeds_enrich]`.
 
 If you already have the PhysioNet release on disk, skip the download and point `input_dir` at the
 release root, the directory that contains `V1.1.0/`:
@@ -140,10 +142,27 @@ PIC's dictionary tables:
 - **Chinese source terms**: kept in their own columns (`title_cn`, `label_cn`, `drug_name_cn`,
     `org_name_cn`, `spec_type_desc_cn`, `ab_name_cn`, `symptom_name_cn`). Codes are always built from the
     English or ID columns.
-- **`unit`**: the unit of the code's `numeric_value`, as recorded. Labs, chart and output items, fluid
+- **`unit`**: the unit of the code's `numeric_value`, written in [UCUM](https://ucum.org/) by suMEDS's
+    `sumeds_normalize_units` post-stage (`ml` becomes `mL`, `bpm` becomes `{beats}/min`); the spelling
+    as recorded stays in `unit_source_value`, a spelling suMEDS does not know is kept as it is, and the
+    codes keep their names (`FLUID_INPUT//ml` stays). Labs, chart and output items, fluid
     input and prescription starts take it from the row's own unit column (`VALUEUOM`, `AMOUNTUOM`,
     `DOSE_UNIT_RX`), which is also the code's last part; an `UNK` code has none. Intra-operative vital
-    signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit.
+    signs take it from `D_ITEMS.UNITNAME`. Susceptibility dilutions have no recorded unit. `unit` is a
+    nullable String, one per code. MEDS-Extract (since 0.9.0)
+    writes it as one String per code and fails if a code has more than one unit. PIC's item labels
+    are not used as a unit source: they state a unit in a recognisable form for very few items, and
+    where the data records a unit, it mostly differs from the label's.
+- **Unit siblings**: codes for the same item or drug that differ only in their last `//{unit}` part
+    (e.g. `LAB//{itemid}//{unit}`) get the code without it (`LAB//{itemid}`) appended to
+    `parent_codes`, and that code gets a row of its own: the siblings' description if they all share
+    it, or else the one they share once each has its own unit removed (labs: the `D_LABITEMS` label;
+    prescription starts name their dose unit, which is left out), the parents they all share (e.g. the
+    LOINC code), and a null `unit`. A code of the same item whose unit was not recorded (`…//UNK`)
+    joins the siblings, but two `UNK`-style codes alone are never a group. The first post-stage, suMEDS's
+    [`sumeds_link_unit_siblings`](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)
+    (default options; it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
+    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are.
 - **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
@@ -157,6 +176,8 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
+    - sumeds_link_unit_siblings
+    - sumeds_normalize_units
     - sumeds_enrich: {rules: PICdb}
 ```
 
