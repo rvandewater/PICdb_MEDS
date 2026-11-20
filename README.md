@@ -70,6 +70,15 @@ meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.y
 Run `meds-extract-run --help` for every pipeline option and `suMEDS-enrich --help` for every enrichment
 option.
 
+Intermediate stage outputs are deleted after a successful run, by default: the spec sets
+MEDS-Extract's `etl.cleanup_intermediates: true`, so a finished `$MEDS_OUTPUT_DIR` holds only `data/`,
+`metadata/`, `.logs/` and `.meds_extract_run/`. A failed run keeps them, so the same command resumes
+where it stopped, and the same command on a finished output still does nothing. To keep them (to look
+at a stage's output; `$MEDS_OUTPUT_DIR/.logs/pipeline.log` keeps the stage logs either way), add
+`"overrides=['cleanup_intermediates=false']"`. Cleanup never deletes raw data: a download into the
+default `$MEDS_OUTPUT_DIR/.meds_extract_run/raw_input` stays, and `download_dest_dir=` elsewhere lets other
+output directories reuse it.
+
 ## How this ETL is defined
 
 The package contains no Python. The whole ETL is one MESSY (MEDS-Extract Specification Syntax YAML)
@@ -111,8 +120,10 @@ is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has
 | `SURGERY_INFO`        | `SURGERY//START//{name}`, `SURGERY//END//{name}`, `ANESTHESIA//START//{method}`, `ANESTHESIA//END//{method}`                           |                                                                                         |
 | `SURGERY_VITAL_SIGNS` | `SURGERY_VITAL//{itemid}`                                                                                                              | Intra-operative monitoring. Units are in the code metadata (`unit`).                    |
 
-A missing unit or susceptibility interpretation becomes `UNK` in the code. A row with a missing
-identifying component (for example, no organism) produces no event for that component.
+A missing unit or susceptibility interpretation becomes `UNK` in the code. A unit in a code is
+stripped of surrounding whitespace; missing or blank is `UNK`. MEDS-Extract compares units the same
+way when it writes `unit` (stripped, blanks dropped), so ` ml` and `ml` give one code. A row with a
+missing identifying component (for example, no organism) produces no event for that component.
 
 ### Code metadata
 
@@ -348,8 +359,7 @@ full release commands, and recovering from a failed release.
 
 ## Breaking changes
 
-### Unreleased
-
+### Unreleased (after 0.1.0)
 - **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
     ([#19](https://github.com/rvandewater/PICdb_MEDS/pull/19)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
     every code that ends in its unit gets the code without the unit (its stem) as its last
@@ -358,6 +368,20 @@ full release commands, and recovering from a failed release.
     Events are unchanged. A synthetic (MESSY-synth) build is unchanged, as each of its items has several random units; on the release, every item and drug recorded in a single unit gets a stem. To migrate, nothing is needed unless a tool expects every
     `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
     ignore a parent that is the code without its last `//` component.
+- **Intermediate stage outputs are no longer kept.** Up to 0.1.0, a run left each stage's output in
+    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
+    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
+    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
+    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
+    wherever you read a stage directory after the run.
+- **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
+    applies to `LAB//{itemid}//{unit}`, `CHART//{itemid}//{unit}`, `FLUID_INPUT//{unit}`,
+    `OUTPUT//{itemid}//{unit}` and `MEDICATION//START//{drug}//{dose unit}`. Before, the unit was
+    copied as recorded: a padded unit (` ml`) gave a code of its own, and a blank or empty one gave a
+    code ending in whitespace or in `//`, with no `unit`. No output change on the synthetic data;
+    codes change only where a unit was padded or blank. To migrate, strip the last part of an old
+    code and write `UNK` for a blank one: `^(.*//)\s*(\S(?:.*\S)?)?\s*$` → `\1\2`, then an
+    empty last part → `UNK`.
 
 ## Citation
 

@@ -325,7 +325,8 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "CHARTTIME": "2081-03-02 10:00:00",
             "VALUE": "5.9",
             "VALUENUM": "5.9",
-            "VALUEUOM": "mmol/L",
+            # Padded: the code's unit is stripped, so this is `LAB//5001//mmol/L` too.
+            "VALUEUOM": " mmol/L ",
             "FLAG": "H",
         },
         # The same item in another unit: a unit sibling of `LAB//5001//mmol/L`.
@@ -348,7 +349,8 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "CHARTTIME": "2101-05-06 10:00:00",
             "VALUE": "Negative",
             "VALUENUM": "",
-            "VALUEUOM": "",
+            # Blank: `LAB//5002//UNK`, as for a missing unit.
+            "VALUEUOM": "  ",
             "FLAG": "",
         },
     ],
@@ -375,7 +377,7 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "STORETIME": "2101-05-05 07:00:00",
             "VALUE": "150",
             "VALUENUM": "150",
-            "VALUEUOM": "bpm",
+            "VALUEUOM": "bpm ",
         },
     ],
     "INPUTEVENTS": [
@@ -386,7 +388,7 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "ICUSTAY_ID": "1001",
             "CHARTTIME": "2081-03-01 12:00:00",
             "AMOUNT": "50",
-            "AMOUNTUOM": "ml",
+            "AMOUNTUOM": " ml",
             "STORETIME": "2081-03-01 12:00:00",
         },
     ],
@@ -431,7 +433,7 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "PROD_STRENGTH": "10mg",
             "DRUG_NAME_GENERIC": "",
             "DOSE_VAL_RX": "1",
-            "DOSE_UNIT_RX": "",
+            "DOSE_UNIT_RX": " ",
             "DRUG_FORM": "Injection",
         },
     ],
@@ -718,8 +720,12 @@ def test_codes(data: pl.DataFrame):
 
 
 def test_values_and_times(data: pl.DataFrame):
+    # One of the two rows records its unit padded with whitespace; both get the stripped unit.
     labs = data.filter(pl.col("code") == "LAB//5001//mmol/L").sort("time")
     assert labs["numeric_value"].to_list() == pytest.approx([4.1, 5.9])
+    assert data.filter(pl.col("code") == "CHART//1001//bpm").height == 2
+    # No code ends in whitespace or in an empty part (a blank unit is `UNK`).
+    assert data.filter(pl.col("code").str.contains(r"(\s|//)$"))["code"].to_list() == []
     text_lab = data.filter(pl.col("code") == "LAB//5002//UNK")
     assert text_lab["text_value"].to_list() == ["Negative"]
     exam = data.filter(pl.col("code") == "EXAM//Ultrasound//Echocardiography")
