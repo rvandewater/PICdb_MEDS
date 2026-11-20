@@ -51,6 +51,8 @@ etl:
   # `meds-extract-run` defaults the dataset name to the registered entry-point name; this fallback
   # makes the spec self-describing when it is resolved by `pkg://` reference or filesystem path.
   dataset_name: PICdb
+  # Delete the <output_dir>/<stage> dirs after a successful run; keep: "overrides=['cleanup_intermediates=false']"
+  cleanup_intermediates: true
   n_subjects_per_shard: 1000
   # Every v1.1.0 csv is UTF-8, Chinese columns included. MEDS-Extract's default since 0.8, `auto`,
   # reads a valid UTF-8 file the same way, but it detects the codec of any other file and may decode
