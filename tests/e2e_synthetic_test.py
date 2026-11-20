@@ -769,12 +769,9 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["LAB//5001//mg/dL"]["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
     stem = by_code["LAB//5001"]
     assert (stem["description"], stem["parent_codes"], stem["unit"]) == ("Potassium", ["LOINC/2823-3"], None)
-    # A unit-suffixed code without a sibling gets no such parent.
-    assert (
-        by_code["CHART//1001//bpm"]["parent_codes"] is None
-        or "CHART//1001" not in (by_code["CHART//1001//bpm"]["parent_codes"])
-    )
-    assert "CHART//1001" not in by_code
+    # A unit-suffixed code without a sibling gets its stem too (`link_single_units`).
+    assert "CHART//1001" in by_code["CHART//1001//bpm"]["parent_codes"]
+    assert by_code["CHART//1001"]["unit"] is None
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["description"] == "Staphylococcus aureus"
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["org_name_cn"] == ["金黄色葡萄球菌"]
     assert by_code["MICROBIOLOGY//SUSCEPTIBILITY//A1//S"]["description"] == "Vancomycin"
