@@ -134,7 +134,7 @@ PIC's dictionary tables:
         gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
     - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.8 attaches no metadata to a
         literal code, and the MEDS standard defines what these two mean.
-- **`parent_codes`**: `LOINC/…` for lab items with a well-formed LOINC code, and `ICD10/…` for
+- **`parent_codes`**: `LOINC//…` for lab items with a well-formed LOINC code, and `ICD10//…` for
     diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. Both come from PIC's own
     dictionaries (`D_LABITEMS.LOINC_CODE`, `D_ICD_DIAGNOSES.ICD10_CODE`). PIC's own extended codes
     (7+ characters) have no parent. Other vocabularies and same-dataset parents are added by suMEDS (next
@@ -239,11 +239,11 @@ meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg
 Enrichment never overwrites what the ETL wrote: PIC's own descriptions, Chinese terms and `parent_codes`
 stay as they are, and new parents are appended after the existing ones. For PICdb it adds:
 
-- **LOINC names**: the `LOINC/…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
+- **LOINC names**: the `LOINC//…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
     found gets its official LOINC name in `parent_names` (a map from parent code to name), and the lab
     code gets `vocabulary_id` `LOINC` and its `concept_code`. LOINC terms have no parents in the pack,
     so no parents are added unless you set `loinc_hierarchy` (`--loinc-hierarchy` for `suMEDS-enrich`),
-    which appends the LOINC Parts on the term's paths in the LOINC multiaxial hierarchy. The `ICD10/…`
+    which appends the LOINC Parts on the term's paths in the LOINC multiaxial hierarchy. The `ICD10//…`
     parents of diagnoses stay unnamed, because WHO ICD-10 may not be redistributed and has no pack; with
     an Athena download (`athena_csv`) they get their names and ancestors from Athena.
 - **ICD-O-3 morphology** (`picdb-icdo3-morphology`): diagnoses coded in the Chinese edition of ICD-O-3
@@ -339,6 +339,16 @@ A release bumps the version in `pyproject.toml` with `uv version --bump`, commit
 `CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
 release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
 full release commands, and recovering from a failed release.
+
+## Breaking changes
+
+### Unreleased (after 0.1.0)
+
+- **Vocabulary parents are spelled `VOCABULARY//CODE`.** The `parent_codes` the ETL writes itself
+    (`ICD10`, `LOINC`) used one slash, `LOINC/2823-3`; they now use two, `LOINC//2823-3`, the
+    spelling suMEDS already writes for the parents it adds. Codes and events are unchanged. To
+    migrate, respell old parents with the regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR
+    already read both spellings as the same parent.
 
 ## Citation
 

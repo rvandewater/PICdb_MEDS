@@ -732,16 +732,16 @@ def test_code_metadata(codes: pl.DataFrame):
     by_code = {row["code"]: row for row in codes.to_dicts()}
 
     assert by_code["LAB//5001//mmol/L"]["description"] == "Potassium"
-    assert by_code["LAB//5001//mmol/L"]["parent_codes"][0] == "LOINC/2823-3"
+    assert by_code["LAB//5001//mmol/L"]["parent_codes"][0] == "LOINC//2823-3"
     # "600" is not a well-formed LOINC code, so it yields no parent.
     assert not by_code["LAB//5002//UNK"]["parent_codes"]
 
     assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["description"] == "Ventricular septal defect"
-    assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["parent_codes"] == ["ICD10/Q21.0"]
+    assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["parent_codes"] == ["ICD10//Q21.0"]
     assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["title_cn"] == ["室间隔缺损"]
     # P07.30 is a PIC extension of WHO ICD-10, so it yields no parent.
     assert not by_code["DIAGNOSIS//ICD10_CN//P07.300x001"]["parent_codes"]
-    assert by_code["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10/J18.9"]
+    assert by_code["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
 
     assert by_code["CHART//1001//bpm"]["description"] == "Heart Rate"
     # `unit` is written in UCUM by suMEDS's `sumeds_normalize_units`, which keeps the spelling as
@@ -765,10 +765,10 @@ def test_code_metadata(codes: pl.DataFrame):
     assert codes.schema["unit"] == pl.String
     # Unit siblings get the code without the unit as a parent, and that code gets a row of its own
     # with what the siblings share: the description and the LOINC parent; no unit.
-    assert by_code["LAB//5001//mmol/L"]["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
-    assert by_code["LAB//5001//mg/dL"]["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
+    assert by_code["LAB//5001//mmol/L"]["parent_codes"] == ["LOINC//2823-3", "LAB//5001"]
+    assert by_code["LAB//5001//mg/dL"]["parent_codes"] == ["LOINC//2823-3", "LAB//5001"]
     stem = by_code["LAB//5001"]
-    assert (stem["description"], stem["parent_codes"], stem["unit"]) == ("Potassium", ["LOINC/2823-3"], None)
+    assert (stem["description"], stem["parent_codes"], stem["unit"]) == ("Potassium", ["LOINC//2823-3"], None)
     # A unit-suffixed code without a sibling gets no such parent.
     assert (
         by_code["CHART//1001//bpm"]["parent_codes"] is None
@@ -786,7 +786,7 @@ def test_code_metadata(codes: pl.DataFrame):
     # `test_run_with_enrichment.py`).
     assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
     assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
-    assert by_code["DIAGNOSIS//ICD10_CN//J18.900x001"]["parent_codes"] == ["ICD10/J18.9"]
+    assert by_code["DIAGNOSIS//ICD10_CN//J18.900x001"]["parent_codes"] == ["ICD10//J18.9"]
 
 
 def test_code_descriptions(codes: pl.DataFrame):

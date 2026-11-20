@@ -1,7 +1,7 @@
 # suMEDS enrichment rules for PICdb MEDS codes (format `sumeds-rules/0.1`).
 #
-# The ETL writes what PIC's own dictionaries carry: English labels, `ICD10/` parents from
-# `D_ICD_DIAGNOSES.ICD10_CODE` and `LOINC/` parents from `D_LABITEMS.LOINC_CODE`. External-ontology
+# The ETL writes what PIC's own dictionaries carry: English labels, `ICD10//` parents from
+# `D_ICD_DIAGNOSES.ICD10_CODE` and `LOINC//` parents from `D_LABITEMS.LOINC_CODE`. External-ontology
 # work is left to suMEDS (https://github.com/rvandewater/SumMEDS), which applies this file to
 # `metadata/codes.parquet`. `pyproject.toml` registers it with suMEDS under the spec's name, `PICdb`,
 # and the spec's `sumeds_enrich` post-stage names it, so one command runs the ETL and then the
