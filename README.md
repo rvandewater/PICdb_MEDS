@@ -70,6 +70,15 @@ meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR stage_runner_fp=runner.y
 Run `meds-extract-run --help` for every pipeline option and `suMEDS-enrich --help` for every enrichment
 option.
 
+Intermediate stage outputs are deleted after a successful run, by default: the spec sets
+MEDS-Extract's `etl.cleanup_intermediates: true`, so a finished `$MEDS_OUTPUT_DIR` holds only `data/`,
+`metadata/`, `.logs/` and `.meds_extract_run/`. A failed run keeps them, so the same command resumes
+where it stopped, and the same command on a finished output still does nothing. To keep them (to look
+at a stage's output or at its own logs in `$MEDS_OUTPUT_DIR/<stage>/.logs/`), add
+`"overrides=['cleanup_intermediates=false']"`. Cleanup never deletes raw data: a download into the
+default `$MEDS_OUTPUT_DIR/.meds_extract_run/raw_input` stays, and `download_dest_dir=` elsewhere lets other
+output directories reuse it.
+
 ## How this ETL is defined
 
 The package contains no Python. The whole ETL is one MESSY (MEDS-Extract Specification Syntax YAML)
@@ -339,6 +348,17 @@ A release bumps the version in `pyproject.toml` with `uv version --bump`, commit
 `CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
 release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
 full release commands, and recovering from a failed release.
+
+## Breaking changes
+
+### Unreleased
+
+- **Intermediate stage outputs are no longer kept.** Up to 0.1.0, a run left each stage's output in
+    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
+    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
+    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
+    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
+    wherever you read a stage directory after the run.
 
 ## Citation
 
