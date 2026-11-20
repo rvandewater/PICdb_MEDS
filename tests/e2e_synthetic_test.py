@@ -691,8 +691,8 @@ def test_codes(data: pl.DataFrame):
     for code in [
         "GENDER//F",
         "HOSPITAL_ADMISSION//PICU",
-        "ADMISSION_DIAGNOSIS//ICD10_CN//J18.900",
-        "DIAGNOSIS//ICD10_CN//P07.300x001",
+        "ADMISSION_DIAGNOSIS//ICD//10CN//J18.900",
+        "DIAGNOSIS//ICD//10CN//P07.300x001",
         "LAB//5001//mmol/L",
         "LAB//5002//UNK",
         "CHART//1001//bpm",
@@ -724,7 +724,7 @@ def test_values_and_times(data: pl.DataFrame):
     assert text_lab["text_value"].to_list() == ["Negative"]
     exam = data.filter(pl.col("code") == "EXAM//Ultrasound//Echocardiography")
     assert [str(t) for t in exam["time"].to_list()] == ["2101-05-07 18:00:00"]
-    dx = data.filter(pl.col("code") == "DIAGNOSIS//ICD10_CN//Q21.000")
+    dx = data.filter(pl.col("code") == "DIAGNOSIS//ICD//10CN//Q21.000")
     assert [str(t) for t in dx["time"].to_list()] == ["2101-05-09 09:09:09"]
 
 
@@ -736,12 +736,12 @@ def test_code_metadata(codes: pl.DataFrame):
     # "600" is not a well-formed LOINC code, so it yields no parent.
     assert not by_code["LAB//5002//UNK"]["parent_codes"]
 
-    assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["description"] == "Ventricular septal defect"
-    assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["parent_codes"] == ["ICD10//Q21.0"]
-    assert by_code["DIAGNOSIS//ICD10_CN//Q21.000"]["title_cn"] == ["室间隔缺损"]
+    assert by_code["DIAGNOSIS//ICD//10CN//Q21.000"]["description"] == "Ventricular septal defect"
+    assert by_code["DIAGNOSIS//ICD//10CN//Q21.000"]["parent_codes"] == ["ICD10//Q21.0"]
+    assert by_code["DIAGNOSIS//ICD//10CN//Q21.000"]["title_cn"] == ["室间隔缺损"]
     # P07.30 is a PIC extension of WHO ICD-10, so it yields no parent.
-    assert not by_code["DIAGNOSIS//ICD10_CN//P07.300x001"]["parent_codes"]
-    assert by_code["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
+    assert not by_code["DIAGNOSIS//ICD//10CN//P07.300x001"]["parent_codes"]
+    assert by_code["ADMISSION_DIAGNOSIS//ICD//10CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
 
     assert by_code["CHART//1001//bpm"]["description"] == "Heart Rate"
     # `unit` is written in UCUM by suMEDS's `sumeds_normalize_units`, which keeps the spelling as
@@ -784,9 +784,9 @@ def test_code_metadata(codes: pl.DataFrame):
     # An ICD-O-3 morphology code gets no parent from the ETL, and an extended code gets no parent
     # from the same dataset; suMEDS adds both through `sumeds_rules.yaml` (see
     # `test_run_with_enrichment.py`).
-    assert by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
-    assert not by_code["DIAGNOSIS//ICD10_CN//M80000/3"]["parent_codes"]
-    assert by_code["DIAGNOSIS//ICD10_CN//J18.900x001"]["parent_codes"] == ["ICD10//J18.9"]
+    assert by_code["DIAGNOSIS//ICD//10CN//M80000/3"]["description"] == "Synthetic neoplasm entry"
+    assert not by_code["DIAGNOSIS//ICD//10CN//M80000/3"]["parent_codes"]
+    assert by_code["DIAGNOSIS//ICD//10CN//J18.900x001"]["parent_codes"] == ["ICD10//J18.9"]
 
 
 def test_code_descriptions(codes: pl.DataFrame):

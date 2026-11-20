@@ -97,9 +97,9 @@ is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has
 | Table                 | Event codes                                                                                                                            | Notes                                                                                   |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `PATIENTS`            | `GENDER//{gender}`, `MEDS_BIRTH`, `MEDS_DEATH`                                                                                         | Death time is the earliest `ADMISSIONS.DEATHTIME`, falling back to `DOD`.               |
-| `ADMISSIONS`          | `HOSPITAL_ADMISSION//{dept}`, `HOSPITAL_DISCHARGE//{dept}`, `INSURANCE//…`, `ETHNICITY//…`, `ADMISSION_DIAGNOSIS//ICD10_CN//{code}`    | ED times equal admit/discharge times in every row, so there are no separate ED events.  |
+| `ADMISSIONS`          | `HOSPITAL_ADMISSION//{dept}`, `HOSPITAL_DISCHARGE//{dept}`, `INSURANCE//…`, `ETHNICITY//…`, `ADMISSION_DIAGNOSIS//ICD//10CN//{code}`   | ED times equal admit/discharge times in every row, so there are no separate ED events.  |
 | `ICUSTAYS`            | `ICU_ADMISSION//{careunit}`, `ICU_DISCHARGE//{careunit}`                                                                               |                                                                                         |
-| `DIAGNOSES_ICD`       | `DIAGNOSIS//ICD10_CN//{code}`                                                                                                          | Placed at hospital discharge. `seq_num` and `diag_category` are kept as columns.        |
+| `DIAGNOSES_ICD`       | `DIAGNOSIS//ICD//10CN//{code}`                                                                                                         | Placed at hospital discharge. `seq_num` and `diag_category` are kept as columns.        |
 | `LABEVENTS`           | `LAB//{itemid}//{unit}`                                                                                                                | `numeric_value`, `text_value` and `flag` are kept.                                      |
 | `CHARTEVENTS`         | `CHART//{itemid}//{unit}`                                                                                                              |                                                                                         |
 | `INPUTEVENTS`         | `FLUID_INPUT//{unit}`                                                                                                                  | PIC records only fluid intake amounts here, with no item ID.                            |
@@ -253,7 +253,7 @@ stay as they are, and new parents are appended after the existing ones. For PICd
     (`athena_csv`).
 - **Same-dataset parents** (`picdb-diagnosis-prefix`, `picdb-admission-diagnosis-prefix`): a diagnosis
     code gets the nearest shorter code of the same family that exists in the build, skipping dots, for
-    example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`, or a PIC extension
+    example `DIAGNOSIS//ICD//10CN//A18.000+` under `DIAGNOSIS//ICD//10CN//A18.000`, or a PIC extension
     such as `P07.300x001` under `P07.300`. Diagnoses and admission diagnoses are linked separately.
 
 The ETL alone writes no `ICDO3` parents and no same-dataset parents; `skip_stages=[sumeds_enrich]`
@@ -276,10 +276,12 @@ catalog of the output.
     values are aggregated into lists.
 - **Uninformative columns.** `LANGUAGE`, `RELIGION` and `MARITAL_STATUS` hold a single value across the
     release and are not extracted.
-- **Local diagnosis codes.** Diagnoses use PIC's extended Chinese ICD-10 codes (`ICD10_CN`), so they do
+- **Local diagnosis codes.** Diagnoses use PIC's extended Chinese ICD-10 codes (`ICD//10CN`), so they do
     not yet line up with standard ICD-10 codes in other datasets. Valid standard codes are attached as
     `parent_codes`. Mapping equivalent codes to standard ICD-10 needs a MEDS-Extract feature; see
-    [#1](https://github.com/rvandewater/PICdb_MEDS/issues/1).
+    [#1](https://github.com/rvandewater/PICdb_MEDS/issues/1). The edition token `10CN` follows the
+    [PIC documentation](https://physionet.org/content/picdb/1.1.0/): "the local ICD-10 version is an
+    extended version with 7 characters", against "the standard 5-character ICD-10 code" in `ICD10_CODE`.
 
 ## Testing
 
@@ -349,6 +351,13 @@ full release commands, and recovering from a failed release.
     spelling suMEDS already writes for the parents it adds. Codes and events are unchanged. To
     migrate, respell old parents with the regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR
     already read both spellings as the same parent.
+- **ICD codes name the vocabulary and its edition apart, `ICD//<edition>//<code>`.** Diagnoses
+    `DIAGNOSIS//ICD10_CN//<code>` and `ADMISSION_DIAGNOSIS//ICD10_CN//<code>` are now
+    `DIAGNOSIS//ICD//10CN//<code>` and `ADMISSION_DIAGNOSIS//ICD//10CN//<code>`, the layout every MEDS
+    ETL of this family uses for ICD (`ICD//10CM`, `ICD//9CM`, `ICD//10PCS`, `ICD//10GM`, ...). The code
+    after the edition is unchanged (PIC's dotted `ICD10_CODE_CN`), and so are its `ICD10//<code>` and
+    `ICDO3//<code>` parents. To migrate, rename codes with the regex
+    `^(ADMISSION_)?DIAGNOSIS//ICD10_CN//` → `\1DIAGNOSIS//ICD//10CN//`.
 
 ## Citation
 
