@@ -179,14 +179,14 @@ def test_enrichment_keeps_what_the_etl_wrote(plain_codes, enriched_codes):
 def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_codes):
     # The prefix rule links an extended code to the shorter code of the same family, after the
     # parent the ETL wrote.
-    extended = enriched_codes["DIAGNOSIS//ICD10_CN//J18.900x001"]
-    assert extended["parent_codes"] == ["ICD10//J18.9", "DIAGNOSIS//ICD10_CN//J18.900"]
+    extended = enriched_codes["DIAGNOSIS//ICD//10CN//J18.900x001"]
+    assert extended["parent_codes"] == ["ICD10//J18.9", "DIAGNOSIS//ICD//10CN//J18.900"]
     assert extended["description"] == "Synthetic pneumonia subtype"
     # The same code in the other family has no such parent: the families are linked separately.
-    assert enriched_codes["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
+    assert enriched_codes["ADMISSION_DIAGNOSIS//ICD//10CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
 
     # A Chinese-edition ICD-O-3 morphology code is tagged with its OMOP histology code.
-    morphology = enriched_codes["DIAGNOSIS//ICD10_CN//M80000/3"]
+    morphology = enriched_codes["DIAGNOSIS//ICD//10CN//M80000/3"]
     assert morphology["parent_codes"] == ["ICDO3//8000/3"]
     assert morphology["description"] == "Synthetic neoplasm entry"
 
@@ -205,7 +205,7 @@ def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_
         for code, row in enriched_codes.items()
         if len(row["parent_codes"] or []) > len(plain_codes[code]["parent_codes"] or [])
     }
-    assert gained == {"DIAGNOSIS//ICD10_CN//J18.900x001", "DIAGNOSIS//ICD10_CN//M80000/3"}
+    assert gained == {"DIAGNOSIS//ICD//10CN//J18.900x001", "DIAGNOSIS//ICD//10CN//M80000/3"}
 
 
 def test_dataset_json_records_the_enrichment(outputs, plain_codes, enriched_codes):

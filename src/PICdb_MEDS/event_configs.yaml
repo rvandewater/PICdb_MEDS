@@ -135,7 +135,7 @@ V1.1.0/ADMISSIONS:
           recorded as Other)"
   admission_diagnosis:
     # The admitting diagnosis, in PIC's extended (Chinese national) ICD-10 coding.
-    code: 'f"ADMISSION_DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"ADMISSION_DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     _metadata:
@@ -201,7 +201,7 @@ V1.1.0/DIAGNOSES_ICD:
         key: HADM_ID
         cols: [DISCHTIME]
   diagnosis:
-    code: 'f"DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     seq_num: $SEQ_NUM
