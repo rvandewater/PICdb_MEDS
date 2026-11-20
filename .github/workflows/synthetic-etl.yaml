@@ -44,12 +44,12 @@ jobs:
         run: uv sync --locked
 
       - name: Generate and extract synthetic data
-        # MESSY-synth 0.1.0 reads the MEDS-Extract 0.8 spec, `_table.joins` included, so it runs
+        # MESSY-synth 0.1.1 reads MEDS-Extract 0.8 and 0.9 specs, `_table.joins` included, so it runs
         # straight on the shipped spec. It runs in a tool environment of its own, which keeps it off
         # the project's locked dependencies. The extraction runs the shipped spec, suMEDS enrichment
         # stage included, with this project's locked MEDS-Extract.
         run: |
-          uvx --python ${{ matrix.python-version }} --from "MESSY_synth==0.1.0" \
+          uvx --python ${{ matrix.python-version }} --from "MESSY_synth==0.1.1" \
             MESSY-synth ./src/PICdb_MEDS/event_configs.yaml -o raw_synthetic/ --explain
           uv run --locked meds-extract-run spec=PICdb output_dir=./PICdb_meds_synth \
             input_dir=raw_synthetic do_download=false
