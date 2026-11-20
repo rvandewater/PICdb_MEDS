@@ -380,7 +380,7 @@ full release commands, and recovering from a failed release.
     every code that ends in its unit gets the code without the unit (its stem) as its last
     `parent_codes` entry, and the stem gets a row of its own (no unit, no events), also when the
     item has a single unit (`LAB//{itemid}//{unit}` gets `LAB//{itemid}`, `MEDICATION//START//{drug}//{unit}` gets `MEDICATION//START//{drug}`). Before, only items recorded in two or more units did. A prescription start without a recorded unit (`MEDICATION//START//{drug}//UNK`) gets its stem too (`unknown_unit_prefixes`).
-    Events are unchanged. A synthetic (MESSY-synth) build is unchanged, as each of its items has several random units; on the release, every item and drug recorded in a single unit gets a stem. To migrate, nothing is needed unless a tool expects every
+    Events are unchanged. On a MESSY-synth 0.1.1 build, 11 single-unit codes get a stem (11 new rows); on the release, every item and drug recorded in a single unit gets one. To migrate, nothing is needed unless a tool expects every
     `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
     ignore a parent that is the code without its last `//` component.
 - **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
