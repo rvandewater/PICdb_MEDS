@@ -106,9 +106,9 @@ is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has
 | Table                 | Event codes                                                                                                                            | Notes                                                                                   |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `PATIENTS`            | `GENDER//{gender}`, `MEDS_BIRTH`, `MEDS_DEATH`                                                                                         | Death time is the earliest `ADMISSIONS.DEATHTIME`, falling back to `DOD`.               |
-| `ADMISSIONS`          | `HOSPITAL_ADMISSION//{dept}`, `HOSPITAL_DISCHARGE//{dept}`, `INSURANCE//…`, `ETHNICITY//…`, `ADMISSION_DIAGNOSIS//ICD10_CN//{code}`    | ED times equal admit/discharge times in every row, so there are no separate ED events.  |
+| `ADMISSIONS`          | `HOSPITAL_ADMISSION//{dept}`, `HOSPITAL_DISCHARGE//{dept}`, `INSURANCE//…`, `ETHNICITY//…`, `ADMISSION_DIAGNOSIS//ICD//10CN//{code}`   | ED times equal admit/discharge times in every row, so there are no separate ED events.  |
 | `ICUSTAYS`            | `ICU_ADMISSION//{careunit}`, `ICU_DISCHARGE//{careunit}`                                                                               |                                                                                         |
-| `DIAGNOSES_ICD`       | `DIAGNOSIS//ICD10_CN//{code}`                                                                                                          | Placed at hospital discharge. `seq_num` and `diag_category` are kept as columns.        |
+| `DIAGNOSES_ICD`       | `DIAGNOSIS//ICD//10CN//{code}`                                                                                                         | Placed at hospital discharge. `seq_num` and `diag_category` are kept as columns.        |
 | `LABEVENTS`           | `LAB//{itemid}//{unit}`                                                                                                                | `numeric_value`, `text_value` and `flag` are kept.                                      |
 | `CHARTEVENTS`         | `CHART//{itemid}//{unit}`                                                                                                              |                                                                                         |
 | `INPUTEVENTS`         | `FLUID_INPUT//{unit}`                                                                                                                  | PIC records only fluid intake amounts here, with no item ID.                            |
@@ -145,7 +145,7 @@ PIC's dictionary tables:
         gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
     - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.8 attaches no metadata to a
         literal code, and the MEDS standard defines what these two mean.
-- **`parent_codes`**: `LOINC/…` for lab items with a well-formed LOINC code, and `ICD10/…` for
+- **`parent_codes`**: `LOINC//…` for lab items with a well-formed LOINC code, and `ICD10//…` for
     diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. Both come from PIC's own
     dictionaries (`D_LABITEMS.LOINC_CODE`, `D_ICD_DIAGNOSES.ICD10_CODE`). PIC's own extended codes
     (7+ characters) have no parent. Other vocabularies and same-dataset parents are added by suMEDS (next
@@ -172,8 +172,12 @@ PIC's dictionary tables:
     LOINC code), and a null `unit`. A code of the same item whose unit was not recorded (`…//UNK`)
     joins the siblings, but two `UNK`-style codes alone are never a group. The first post-stage, suMEDS's
     [`sumeds_link_unit_siblings`](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)
-    (default options; it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
-    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are.
+    (it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
+    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are. With
+    `link_single_units: true` and `unknown_unit_prefixes: [MEDICATION//START//]`, a code ending in
+    its unit gets its stem also when its item has a single unit, and so does a prescription start
+    without a recorded unit (`MEDICATION//START//{drug}//UNK`), so every start pairs with its
+    `MEDICATION//END//{drug}` by stem.
 - **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
@@ -187,7 +191,9 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
-    - sumeds_link_unit_siblings
+    - sumeds_link_unit_siblings:
+        link_single_units: true
+        unknown_unit_prefixes: [MEDICATION//START//]
     - sumeds_normalize_units
     - sumeds_enrich: {rules: PICdb}
 ```
@@ -250,11 +256,11 @@ meds-extract-run spec=PICdb output_dir=$MEDS_OUTPUT_DIR "overrides=['++stage_cfg
 Enrichment never overwrites what the ETL wrote: PIC's own descriptions, Chinese terms and `parent_codes`
 stay as they are, and new parents are appended after the existing ones. For PICdb it adds:
 
-- **LOINC names**: the `LOINC/…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
+- **LOINC names**: the `LOINC//…` parents of lab codes are looked up in suMEDS's LOINC pack. Each one
     found gets its official LOINC name in `parent_names` (a map from parent code to name), and the lab
     code gets `vocabulary_id` `LOINC` and its `concept_code`. LOINC terms have no parents in the pack,
     so no parents are added unless you set `loinc_hierarchy` (`--loinc-hierarchy` for `suMEDS-enrich`),
-    which appends the LOINC Parts on the term's paths in the LOINC multiaxial hierarchy. The `ICD10/…`
+    which appends the LOINC Parts on the term's paths in the LOINC multiaxial hierarchy. The `ICD10//…`
     parents of diagnoses stay unnamed, because WHO ICD-10 may not be redistributed and has no pack; with
     an Athena download (`athena_csv`) they get their names and ancestors from Athena.
 - **ICD-O-3 morphology** (`picdb-icdo3-morphology`): diagnoses coded in the Chinese edition of ICD-O-3
@@ -264,7 +270,7 @@ stay as they are, and new parents are appended after the existing ones. For PICd
     (`athena_csv`).
 - **Same-dataset parents** (`picdb-diagnosis-prefix`, `picdb-admission-diagnosis-prefix`): a diagnosis
     code gets the nearest shorter code of the same family that exists in the build, skipping dots, for
-    example `DIAGNOSIS//ICD10_CN//A18.000+` under `DIAGNOSIS//ICD10_CN//A18.000`, or a PIC extension
+    example `DIAGNOSIS//ICD//10CN//A18.000+` under `DIAGNOSIS//ICD//10CN//A18.000`, or a PIC extension
     such as `P07.300x001` under `P07.300`. Diagnoses and admission diagnoses are linked separately.
 
 The ETL alone writes no `ICDO3` parents and no same-dataset parents; `skip_stages=[sumeds_enrich]`
@@ -287,10 +293,12 @@ catalog of the output.
     values are aggregated into lists.
 - **Uninformative columns.** `LANGUAGE`, `RELIGION` and `MARITAL_STATUS` hold a single value across the
     release and are not extracted.
-- **Local diagnosis codes.** Diagnoses use PIC's extended Chinese ICD-10 codes (`ICD10_CN`), so they do
+- **Local diagnosis codes.** Diagnoses use PIC's extended Chinese ICD-10 codes (`ICD//10CN`), so they do
     not yet line up with standard ICD-10 codes in other datasets. Valid standard codes are attached as
     `parent_codes`. Mapping equivalent codes to standard ICD-10 needs a MEDS-Extract feature; see
-    [#1](https://github.com/rvandewater/PICdb_MEDS/issues/1).
+    [#1](https://github.com/rvandewater/PICdb_MEDS/issues/1). The edition token `10CN` follows the
+    [PIC documentation](https://physionet.org/content/picdb/1.1.0/): "the local ICD-10 version is an
+    extended version with 7 characters", against "the standard 5-character ICD-10 code" in `ICD10_CODE`.
 
 ## Testing
 
@@ -354,12 +362,27 @@ full release commands, and recovering from a failed release.
 ## Breaking changes
 
 ### Unreleased (after 0.1.0)
-- **Intermediate stage outputs are no longer kept.** Up to 0.1.0, a run left each stage's output in
-    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
-    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
-    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
-    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
-    wherever you read a stage directory after the run.
+
+- **ICD codes name the vocabulary and its edition apart, `ICD//<edition>//<code>`.** Diagnoses
+    `DIAGNOSIS//ICD10_CN//<code>` and `ADMISSION_DIAGNOSIS//ICD10_CN//<code>` are now
+    `DIAGNOSIS//ICD//10CN//<code>` and `ADMISSION_DIAGNOSIS//ICD//10CN//<code>`, the layout every MEDS
+    ETL of this family uses for ICD (`ICD//10CM`, `ICD//9CM`, `ICD//10PCS`, `ICD//10GM`, ...). The code
+    after the edition is unchanged (PIC's dotted `ICD10_CODE_CN`), and so are its `ICD10//<code>` and
+    `ICDO3//<code>` parents. To migrate, rename codes with the regex
+    `^(ADMISSION_)?DIAGNOSIS//ICD10_CN//` → `\1DIAGNOSIS//ICD//10CN//`.
+- **Vocabulary parents are spelled `VOCABULARY//CODE`.** The `parent_codes` the ETL writes itself
+    (`ICD10`, `LOINC`) used one slash, `LOINC/2823-3`; they now use two, `LOINC//2823-3`, the
+    spelling suMEDS already writes for the parents it adds. Codes and events are unchanged. To
+    migrate, respell old parents with the regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR
+    already read both spellings as the same parent.
+- **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
+    ([#19](https://github.com/rvandewater/PICdb_MEDS/pull/19)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
+    every code that ends in its unit gets the code without the unit (its stem) as its last
+    `parent_codes` entry, and the stem gets a row of its own (no unit, no events), also when the
+    item has a single unit (`LAB//{itemid}//{unit}` gets `LAB//{itemid}`, `MEDICATION//START//{drug}//{unit}` gets `MEDICATION//START//{drug}`). Before, only items recorded in two or more units did. A prescription start without a recorded unit (`MEDICATION//START//{drug}//UNK`) gets its stem too (`unknown_unit_prefixes`).
+    Events are unchanged. On a MESSY-synth 0.1.1 build, 11 single-unit codes get a stem (11 new rows); on the release, every item and drug recorded in a single unit gets one. To migrate, nothing is needed unless a tool expects every
+    `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
+    ignore a parent that is the code without its last `//` component.
 - **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
     applies to `LAB//{itemid}//{unit}`, `CHART//{itemid}//{unit}`, `FLUID_INPUT//{unit}`,
     `OUTPUT//{itemid}//{unit}` and `MEDICATION//START//{drug}//{dose unit}`. Before, the unit was
@@ -368,6 +391,12 @@ full release commands, and recovering from a failed release.
     codes change only where a unit was padded or blank. To migrate, strip the last part of an old
     code and write `UNK` for a blank one: `^(.*//)\s*(\S(?:.*\S)?)?\s*$` → `\1\2`, then an
     empty last part → `UNK`.
+- **Intermediate stage outputs are no longer kept.** Up to 0.1.0, a run left each stage's output in
+    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
+    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
+    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
+    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
+    wherever you read a stage directory after the run.
 
 ## Citation
 

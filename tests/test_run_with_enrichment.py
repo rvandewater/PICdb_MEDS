@@ -10,7 +10,7 @@ The ontology source is a tiny pack repository in suMEDS's `sumeds-ontologies/0.1
 with a made-up title for the one LOINC code of the synthetic labs, so the test reads nothing over
 the network and does not depend on the published packs. It reaches the stage as a pipeline override,
 `"overrides=['++stage_cfg.ontology_source=DIR']"`. There is no WHO ICD-10 or ICD-O-3 pack (the
-published packs have none either), so the `ICD10/` parents the ETL writes stay unnamed. Another
+published packs have none either), so the `ICD10//` parents the ETL writes stay unnamed. Another
 run points at an empty pack source, through `SUMEDS_ONTOLOGY_SOURCE`, which is how a site without
 internet fails: the ETL still succeeds, unenriched, and `suMEDS-enrich` completes it later.
 """
@@ -179,14 +179,14 @@ def test_enrichment_keeps_what_the_etl_wrote(plain_codes, enriched_codes):
 def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_codes):
     # The prefix rule links an extended code to the shorter code of the same family, after the
     # parent the ETL wrote.
-    extended = enriched_codes["DIAGNOSIS//ICD10_CN//J18.900x001"]
-    assert extended["parent_codes"] == ["ICD10/J18.9", "DIAGNOSIS//ICD10_CN//J18.900"]
+    extended = enriched_codes["DIAGNOSIS//ICD//10CN//J18.900x001"]
+    assert extended["parent_codes"] == ["ICD10//J18.9", "DIAGNOSIS//ICD//10CN//J18.900"]
     assert extended["description"] == "Synthetic pneumonia subtype"
     # The same code in the other family has no such parent: the families are linked separately.
-    assert enriched_codes["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10/J18.9"]
+    assert enriched_codes["ADMISSION_DIAGNOSIS//ICD//10CN//J18.900"]["parent_codes"] == ["ICD10//J18.9"]
 
     # A Chinese-edition ICD-O-3 morphology code is tagged with its OMOP histology code.
-    morphology = enriched_codes["DIAGNOSIS//ICD10_CN//M80000/3"]
+    morphology = enriched_codes["DIAGNOSIS//ICD//10CN//M80000/3"]
     assert morphology["parent_codes"] == ["ICDO3//8000/3"]
     assert morphology["description"] == "Synthetic neoplasm entry"
 
@@ -195,8 +195,8 @@ def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_
     # The unit-sibling parent `LAB//5001` (from the `sumeds_link_unit_siblings` post-stage, which runs
     # first) names no vocabulary, so suMEDS keeps it as it is.
     lab = enriched_codes["LAB//5001//mmol/L"]
-    assert lab["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
-    assert names(lab["parent_names"]) == {"LOINC/2823-3": title("LOINC", "2823-3")}
+    assert lab["parent_codes"] == ["LOINC//2823-3", "LAB//5001"]
+    assert names(lab["parent_names"]) == {"LOINC//2823-3": title("LOINC", "2823-3")}
     assert (lab["description"], lab["vocabulary_id"], lab["concept_code"]) == ("Potassium", "LOINC", "2823-3")
 
     # Nothing else gains a parent.
@@ -205,7 +205,7 @@ def test_enrichment_adds_the_rules_parents_and_pack_names(plain_codes, enriched_
         for code, row in enriched_codes.items()
         if len(row["parent_codes"] or []) > len(plain_codes[code]["parent_codes"] or [])
     }
-    assert gained == {"DIAGNOSIS//ICD10_CN//J18.900x001", "DIAGNOSIS//ICD10_CN//M80000/3"}
+    assert gained == {"DIAGNOSIS//ICD//10CN//J18.900x001", "DIAGNOSIS//ICD//10CN//M80000/3"}
 
 
 def test_dataset_json_records_the_enrichment(outputs, plain_codes, enriched_codes):

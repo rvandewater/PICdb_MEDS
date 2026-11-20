@@ -70,14 +70,21 @@ etl:
   # records the result in `dataset.json` under `sumeds_enrichment`. If it cannot (no internet, say),
   # the ETL still succeeds, unenriched, and `suMEDS-enrich <output_dir>` finishes it later.
   post_stages:
-    # First, suMEDS's `sumeds_link_unit_siblings` (suMEDS's docs/unit_siblings.md, default options)
-    # gives codes that differ only in their last `//<unit>` part the code without it as a parent,
-    # with a row of its own; a code whose unit was not recorded (`…//UNK`) joins its item's siblings.
+    # First, suMEDS's `sumeds_link_unit_siblings` (suMEDS's docs/unit_siblings.md) gives codes that
+    # differ only in their last `//<unit>` part the code without it as a parent, with a row of its
+    # own; a code whose unit was not recorded (`…//UNK`) joins its item's siblings. With
+    # `link_single_units`, a code ending in its unit gets its stem also when its item has one unit,
+    # so that every prescription start `MEDICATION//START//<drug>//<unit>` pairs with its end
+    # `MEDICATION//END//<drug>` by stem (alignEHR#53); `unknown_unit_prefixes` does the same for a
+    # start without a recorded dose unit (`MEDICATION//START//<drug>//UNK`), while `UNK` elsewhere
+    # (`DIAGNOSIS//UNK`) is no unit and gets no stem.
     # MEDS-Extract (>= 0.9) itself writes `unit` as one String per code and fails if a code has more
     # than one unit. It runs before unit normalisation and the enrichment, so the enrichment, its
     # coverage record and a later `suMEDS-enrich` retry all see the same table, and the new rows are
     # enriched too.
-    - sumeds_link_unit_siblings
+    - sumeds_link_unit_siblings:
+        link_single_units: true
+        unknown_unit_prefixes: [MEDICATION//START//]
     # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
     # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
     - sumeds_normalize_units
@@ -144,7 +151,7 @@ V1.1.0/ADMISSIONS:
           recorded as Other)"
   admission_diagnosis:
     # The admitting diagnosis, in PIC's extended (Chinese national) ICD-10 coding.
-    code: 'f"ADMISSION_DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"ADMISSION_DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     _metadata:
@@ -157,7 +164,7 @@ V1.1.0/ADMISSIONS:
         # same-dataset parents come from `sumeds_rules.yaml` (README, "Enriching code metadata with
         # suMEDS").
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+          f"ICD10//{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
   discharge:
     code: 'f"HOSPITAL_DISCHARGE//{$DISCHARGE_DEPARTMENT}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
@@ -210,7 +217,7 @@ V1.1.0/DIAGNOSES_ICD:
         key: HADM_ID
         cols: [DISCHTIME]
   diagnosis:
-    code: 'f"DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     seq_num: $SEQ_NUM
@@ -221,7 +228,7 @@ V1.1.0/DIAGNOSES_ICD:
         description: $TITLE
         title_cn: $TITLE_CN
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+          f"ICD10//{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
 
 V1.1.0/LABEVENTS:
   _table:
@@ -246,7 +253,7 @@ V1.1.0/LABEVENTS:
         category: $CATEGORY
         # Only well-formed LOINC codes (digits, dash, check digit) are emitted as parents.
         parent_codes: >-
-          f"LOINC/{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
+          f"LOINC//{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
       # The row's own unit, which is also the code's last part (null for an `UNK` code).
       _self:
         unit: $VALUEUOM
