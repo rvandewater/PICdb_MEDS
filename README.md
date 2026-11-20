@@ -42,7 +42,7 @@ When you run this, the program will:
 2. Build the MEDS cohort from those files and write it to `$MEDS_OUTPUT_DIR` (`data/` and `metadata/`).
     All transformations, joins and metadata extraction are declared in
     [`src/PICdb_MEDS/event_configs.yaml`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/event_configs.yaml).
-3. Link unit siblings (the `picdb_unit_metadata` stage; see
+3. Link unit siblings (suMEDS's `sumeds_link_unit_siblings` stage; see
     the `unit` entry under [Code metadata](#code-metadata)), write `unit` in UCUM (suMEDS's
     `sumeds_normalize_units` stage), then enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package), as the spec's last stage, `sumeds_enrich`, using the rules this
@@ -156,11 +156,13 @@ PIC's dictionary tables:
 - **Unit siblings**: codes for the same item or drug that differ only in their last `//{unit}` part
     (e.g. `LAB//{itemid}//{unit}`) get the code without it (`LAB//{itemid}`) appended to
     `parent_codes`, and that code gets a row of its own: the siblings' description if they all share
-    it (labs: the `D_LABITEMS` label; prescription starts name their dose unit, so theirs is null), the
-    parents they all share (e.g. the LOINC code), and a null `unit`. The first post-stage,
-    `picdb_unit_metadata`
-    ([`unit_metadata.py`](https://github.com/rvandewater/PICdb_MEDS/blob/main/src/PICdb_MEDS/unit_metadata.py)),
-    adds them, before suMEDS, which keeps these parents as they are.
+    it, or else the one they share once each has its own unit removed (labs: the `D_LABITEMS` label;
+    prescription starts name their dose unit, which is left out), the parents they all share (e.g. the
+    LOINC code), and a null `unit`. A code of the same item whose unit was not recorded (`…//UNK`)
+    joins the siblings, but two `UNK`-style codes alone are never a group. The first post-stage, suMEDS's
+    [`sumeds_link_unit_siblings`](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)
+    (default options; it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
+    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are.
 - **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
@@ -174,7 +176,7 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
-    - picdb_unit_metadata
+    - sumeds_link_unit_siblings
     - sumeds_normalize_units
     - sumeds_enrich: {rules: PICdb}
 ```

@@ -20,8 +20,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-# The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`; the only
-# Python is the `picdb_unit_metadata` post-stage (`unit_metadata.py`), registered below. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
+# The whole ETL is `event_configs.yaml`, run by MEDS-Extract's own `meds-extract-run`; there is no
+# Python of its own. The `[download]` extra adds `meds-extract-download`, which the runner spawns to
 # stage the raw data from PhysioNet. MEDS-transforms, polars and hydra arrive through it at the
 # versions it fences.
 #
@@ -35,11 +35,13 @@ classifiers = [
 # suMEDS 0.6.2 registers the `sumeds_enrich` stage the spec declares, which enriches the code
 # metadata with the rules registered below, soft-fails (a site without internet still gets its ETL)
 # and records in `metadata/dataset.json` whether the build was enriched; it also provides
-# `suMEDS-enrich` for an existing build. It is capped below the next minor for the same reason (its
-# rules format and CLI are still 0.x).
+# `suMEDS-enrich` for an existing build. 0.6.6 registers the `sumeds_link_unit_siblings` post-stage,
+# which links codes that differ only in their unit (it replaced this package's own
+# `picdb_unit_metadata`). It is capped below the next minor for the same reason (its rules format and
+# CLI are still 0.x).
 dependencies = [
     "meds-extract[download]>=0.9.0,<0.10",
-    "sumeds>=0.6.5,<0.7",
+    "sumeds>=0.6.6,<0.7",
 ]
 
 [dependency-groups]
@@ -52,10 +54,6 @@ dev = [
 
 [project.entry-points."MEDS_extract.pipelines"]
 PICdb = "PICdb_MEDS:event_configs.yaml"
-
-# The post-stage that links codes in codes.parquet that differ only in their unit (`etl.post_stages`).
-[project.entry-points."MEDS_transforms.stages"]
-picdb_unit_metadata = "PICdb_MEDS.unit_metadata:main"
 
 # Registers the suMEDS rules under the same name, so the spec's `sumeds_enrich` stage and
 # `--rules PICdb` find them.
