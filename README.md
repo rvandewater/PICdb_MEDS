@@ -360,6 +360,7 @@ full release commands, and recovering from a failed release.
 ## Breaking changes
 
 ### Unreleased (after 0.1.0)
+
 - **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
     ([#19](https://github.com/rvandewater/PICdb_MEDS/pull/19)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
     every code that ends in its unit gets the code without the unit (its stem) as its last
