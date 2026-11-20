@@ -328,6 +328,18 @@ TABLES: dict[str, list[dict[str, str]]] = {
             "VALUEUOM": "mmol/L",
             "FLAG": "H",
         },
+        # The same item in another unit: a unit sibling of `LAB//5001//mmol/L`.
+        {
+            "ROW_ID": "4",
+            "SUBJECT_ID": "1",
+            "HADM_ID": "101",
+            "ITEMID": "5001",
+            "CHARTTIME": "2081-03-03 10:00:00",
+            "VALUE": "16.0",
+            "VALUENUM": "16.0",
+            "VALUEUOM": "mg/dL",
+            "FLAG": "",
+        },
         {
             "ROW_ID": "3",
             "SUBJECT_ID": "3",
@@ -720,7 +732,7 @@ def test_code_metadata(codes: pl.DataFrame):
     by_code = {row["code"]: row for row in codes.to_dicts()}
 
     assert by_code["LAB//5001//mmol/L"]["description"] == "Potassium"
-    assert by_code["LAB//5001//mmol/L"]["parent_codes"] == ["LOINC/2823-3"]
+    assert by_code["LAB//5001//mmol/L"]["parent_codes"][0] == "LOINC/2823-3"
     # "600" is not a well-formed LOINC code, so it yields no parent.
     assert not by_code["LAB//5002//UNK"]["parent_codes"]
 
@@ -732,7 +744,37 @@ def test_code_metadata(codes: pl.DataFrame):
     assert by_code["ADMISSION_DIAGNOSIS//ICD10_CN//J18.900"]["parent_codes"] == ["ICD10/J18.9"]
 
     assert by_code["CHART//1001//bpm"]["description"] == "Heart Rate"
-    assert by_code["SURGERY_VITAL//SV1"]["unit"] == ["bpm"]
+    # `unit` is written in UCUM by suMEDS's `sumeds_normalize_units`, which keeps the spelling as
+    # recorded in `unit_source_value`; the code keeps its name.
+    sv1 = by_code["SURGERY_VITAL//SV1"]
+    assert (sv1["unit"], sv1["unit_source_value"]) == ("{beats}/min", "bpm")
+    # Every other numeric code also carries its unit, from the row's own unit column; an `UNK` code
+    # has none.
+    for code, unit, recorded in [
+        ("LAB//5001//mmol/L", "mmol/L", "mmol/L"),
+        ("LAB//5001//mg/dL", "mg/dL", "mg/dL"),
+        ("CHART//1001//bpm", "{beats}/min", "bpm"),
+        ("FLUID_INPUT//ml", "mL", "ml"),
+        ("OUTPUT//2001//ml", "mL", "ml"),
+        ("MEDICATION//START//Vancomycin Injection//mg", "mg", "mg"),
+    ]:
+        assert (by_code[code]["unit"], by_code[code]["unit_source_value"]) == (unit, recorded), code
+    for code in ["LAB//5002//UNK", "MEDICATION//START//Vitamin K1 Injection//UNK"]:
+        assert by_code[code]["unit"] is None, code
+    # MEDS-Extract (>= 0.9) writes `unit` as one String per code.
+    assert codes.schema["unit"] == pl.String
+    # Unit siblings get the code without the unit as a parent, and that code gets a row of its own
+    # with what the siblings share: the description and the LOINC parent; no unit.
+    assert by_code["LAB//5001//mmol/L"]["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
+    assert by_code["LAB//5001//mg/dL"]["parent_codes"] == ["LOINC/2823-3", "LAB//5001"]
+    stem = by_code["LAB//5001"]
+    assert (stem["description"], stem["parent_codes"], stem["unit"]) == ("Potassium", ["LOINC/2823-3"], None)
+    # A unit-suffixed code without a sibling gets no such parent.
+    assert (
+        by_code["CHART//1001//bpm"]["parent_codes"] is None
+        or "CHART//1001" not in (by_code["CHART//1001//bpm"]["parent_codes"])
+    )
+    assert "CHART//1001" not in by_code
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["description"] == "Staphylococcus aureus"
     assert by_code["MICROBIOLOGY//ORGANISM//O1"]["org_name_cn"] == ["金黄色葡萄球菌"]
     assert by_code["MICROBIOLOGY//SUSCEPTIBILITY//A1//S"]["description"] == "Vancomycin"
