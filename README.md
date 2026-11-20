@@ -172,8 +172,12 @@ PIC's dictionary tables:
     LOINC code), and a null `unit`. A code of the same item whose unit was not recorded (`…//UNK`)
     joins the siblings, but two `UNK`-style codes alone are never a group. The first post-stage, suMEDS's
     [`sumeds_link_unit_siblings`](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)
-    (default options; it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
-    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are.
+    (it replaced this package's own `picdb_unit_metadata` in suMEDS 0.6.6), adds them,
+    before `sumeds_normalize_units` and the enrichment, which keeps these parents as they are. With
+    `link_single_units: true` and `unknown_unit_prefixes: [MEDICATION//START//]`, a code ending in
+    its unit gets its stem also when its item has a single unit, and so does a prescription start
+    without a recorded unit (`MEDICATION//START//{drug}//UNK`), so every start pairs with its
+    `MEDICATION//END//{drug}` by stem.
 - **Extra dictionary fields**: `fluid` and `category`.
 
 ### Enriching code metadata with suMEDS
@@ -187,7 +191,9 @@ registered in suMEDS's `sumeds.rules` entry-point group under the same name as t
 ```yaml
 etl:
   post_stages:
-    - sumeds_link_unit_siblings
+    - sumeds_link_unit_siblings:
+        link_single_units: true
+        unknown_unit_prefixes: [MEDICATION//START//]
     - sumeds_normalize_units
     - sumeds_enrich: {rules: PICdb}
 ```
@@ -369,6 +375,14 @@ full release commands, and recovering from a failed release.
     spelling suMEDS already writes for the parents it adds. Codes and events are unchanged. To
     migrate, respell old parents with the regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR
     already read both spellings as the same parent.
+- **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
+    ([#19](https://github.com/rvandewater/PICdb_MEDS/pull/19)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
+    every code that ends in its unit gets the code without the unit (its stem) as its last
+    `parent_codes` entry, and the stem gets a row of its own (no unit, no events), also when the
+    item has a single unit (`LAB//{itemid}//{unit}` gets `LAB//{itemid}`, `MEDICATION//START//{drug}//{unit}` gets `MEDICATION//START//{drug}`). Before, only items recorded in two or more units did. A prescription start without a recorded unit (`MEDICATION//START//{drug}//UNK`) gets its stem too (`unknown_unit_prefixes`).
+    Events are unchanged. A synthetic (MESSY-synth) build is unchanged, as each of its items has several random units; on the release, every item and drug recorded in a single unit gets a stem. To migrate, nothing is needed unless a tool expects every
+    `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
+    ignore a parent that is the code without its last `//` component.
 - **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
     applies to `LAB//{itemid}//{unit}`, `CHART//{itemid}//{unit}`, `FLUID_INPUT//{unit}`,
     `OUTPUT//{itemid}//{unit}` and `MEDICATION//START//{drug}//{dose unit}`. Before, the unit was
