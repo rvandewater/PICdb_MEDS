@@ -111,8 +111,10 @@ is needed: every PIC table already carries `SUBJECT_ID`, and every timestamp has
 | `SURGERY_INFO`        | `SURGERY//START//{name}`, `SURGERY//END//{name}`, `ANESTHESIA//START//{method}`, `ANESTHESIA//END//{method}`                           |                                                                                         |
 | `SURGERY_VITAL_SIGNS` | `SURGERY_VITAL//{itemid}`                                                                                                              | Intra-operative monitoring. Units are in the code metadata (`unit`).                    |
 
-A missing unit or susceptibility interpretation becomes `UNK` in the code. A row with a missing
-identifying component (for example, no organism) produces no event for that component.
+A missing unit or susceptibility interpretation becomes `UNK` in the code. A unit in a code is
+stripped of surrounding whitespace; missing or blank is `UNK`. MEDS-Extract compares units the same
+way when it writes `unit` (stripped, blanks dropped), so ` ml` and `ml` give one code. A row with a
+missing identifying component (for example, no organism) produces no event for that component.
 
 ### Code metadata
 
@@ -339,6 +341,19 @@ A release bumps the version in `pyproject.toml` with `uv version --bump`, commit
 `CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
 release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
 full release commands, and recovering from a failed release.
+
+## Breaking changes
+
+### Unreleased (after 0.1.0)
+
+- **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
+    applies to `LAB//{itemid}//{unit}`, `CHART//{itemid}//{unit}`, `FLUID_INPUT//{unit}`,
+    `OUTPUT//{itemid}//{unit}` and `MEDICATION//START//{drug}//{dose unit}`. Before, the unit was
+    copied as recorded: a padded unit (` ml`) gave a code of its own, and a blank or empty one gave a
+    code ending in whitespace or in `//`, with no `unit`. No output change on the synthetic data;
+    codes change only where a unit was padded or blank. To migrate, strip the last part of an old
+    code and write `UNK` for a blank one: `^(.*//)\s*(\S(?:.*\S)?)?\s*$` → `\1\2`, then an
+    empty last part → `UNK`.
 
 ## Citation
 
