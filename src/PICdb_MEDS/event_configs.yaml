@@ -144,7 +144,7 @@ V1.1.0/ADMISSIONS:
           recorded as Other)"
   admission_diagnosis:
     # The admitting diagnosis, in PIC's extended (Chinese national) ICD-10 coding.
-    code: 'f"ADMISSION_DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"ADMISSION_DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$ADMITTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     _metadata:
@@ -157,7 +157,7 @@ V1.1.0/ADMISSIONS:
         # same-dataset parents come from `sumeds_rules.yaml` (README, "Enriching code metadata with
         # suMEDS").
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+          f"ICD10//{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
   discharge:
     code: 'f"HOSPITAL_DISCHARGE//{$DISCHARGE_DEPARTMENT}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
@@ -210,7 +210,7 @@ V1.1.0/DIAGNOSES_ICD:
         key: HADM_ID
         cols: [DISCHTIME]
   diagnosis:
-    code: 'f"DIAGNOSIS//ICD10_CN//{$ICD10_CODE_CN}"'
+    code: 'f"DIAGNOSIS//ICD//10CN//{$ICD10_CODE_CN}"'
     time: '$DISCHTIME::"%Y-%m-%d %H:%M:%S"'
     hadm_id: $HADM_ID
     seq_num: $SEQ_NUM
@@ -221,7 +221,7 @@ V1.1.0/DIAGNOSES_ICD:
         description: $TITLE
         title_cn: $TITLE_CN
         parent_codes: >-
-          f"ICD10/{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
+          f"ICD10//{$ICD10_CODE}" if /^[A-Z][0-9]{2}([.][0-9])?$/ in $ICD10_CODE
 
 V1.1.0/LABEVENTS:
   _table:
@@ -246,7 +246,7 @@ V1.1.0/LABEVENTS:
         category: $CATEGORY
         # Only well-formed LOINC codes (digits, dash, check digit) are emitted as parents.
         parent_codes: >-
-          f"LOINC/{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
+          f"LOINC//{$LOINC_CODE}" if /^[0-9]+-[0-9]$/ in $LOINC_CODE
       # The row's own unit, which is also the code's last part (null for an `UNK` code).
       _self:
         unit: $VALUEUOM
