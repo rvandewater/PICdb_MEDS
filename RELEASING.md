@@ -1,11 +1,11 @@
 # Releasing PICdb-MEDS
 
 The version lives in `pyproject.toml` and always holds the **last released** version. A release
-bumps it with `uv version --bump`, commits the bump together with the updated
-[`CITATION.cff`](CITATION.cff), and tags that commit with the version it was just bumped to.
+bumps it with `uv version --bump`, commits the bump, and tags that commit with the version it
+was just bumped to. [`CITATION.cff`](CITATION.cff) names no version or release date (it cites the
+repository), so a release leaves it as it is.
 The tag is read back from `pyproject.toml`, never typed, so it cannot name the wrong version;
-the publish workflow also refuses any tag that differs from `pyproject.toml` or from the
-version in `CITATION.cff`. Pushing the tag publishes to PyPI and creates the GitHub release,
+the publish workflow also refuses any tag that differs from `pyproject.toml`. Pushing the tag publishes to PyPI and creates the GitHub release,
 which Zenodo archives with a DOI.
 
 The version is stamped into every MEDS output as `metadata/dataset.json` `dataset_version` =
@@ -49,26 +49,22 @@ update the trusted publisher under the project's *Publishing* settings on PyPI t
     git switch main && git pull --ff-only && git status --short # must print nothing
     ```
 
-2. Bump, update the citation, test, build, commit, tag and push. Use `patch`, `minor` or
+2. Bump, test, build, commit, tag and push. Use `patch`, `minor` or
     `major` as chosen above:
 
     ```bash
     uv version --bump patch
     VERSION=$(uv version --short)
-    perl -pi -e "s/^version: .*/version: $VERSION/; s/^date-released: .*/date-released: '$(date +%F)'/; s|(repository-code: .*/tree/).*|\${1}$VERSION|" CITATION.cff
     uv run pytest
     uv build --clear
-    git add pyproject.toml uv.lock CITATION.cff
+    git add pyproject.toml uv.lock
     git commit -m "Release $VERSION"
     git tag -a "$VERSION" -m "Release $VERSION"
     git push origin main "$VERSION"
     ```
 
-    The `perl` line sets `version`, `date-released` and the tag in `repository-code`; check it
-    with `git diff CITATION.cff` before committing.
-
     If `pytest` or `uv build` fails, stop: nothing is committed yet. Undo the bump with
-    `git checkout pyproject.toml uv.lock CITATION.cff`, fix the problem on `main`, and start
+    `git checkout pyproject.toml uv.lock`, fix the problem on `main`, and start
     again.
 
     Do not create the GitHub release by hand; the workflow creates it and fails if it already
@@ -77,7 +73,7 @@ update the trusted publisher under the project's *Publishing* settings on PyPI t
 3. The tag push runs [`python-build.yaml`](.github/workflows/python-build.yaml). Follow it
     with `gh run watch`. It:
 
-    - fails unless the tag equals the `pyproject.toml` version and `CITATION.cff` cites it;
+    - fails unless the tag equals the `pyproject.toml` version;
     - builds the wheel and sdist and publishes them to PyPI;
     - signs the dists with Sigstore and attaches them to a new GitHub release named after the
         tag.

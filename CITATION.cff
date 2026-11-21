@@ -6,14 +6,11 @@ abstract: A MEDS-Extract powered ETL pipeline that converts the Paediatric Inten
 authors:
 - family-names: van de Water
   given-names: Robin
-  orcid: 0000-0002-2895-4872
+  orcid: https://orcid.org/0000-0002-2895-4872
 cff-version: 1.2.0
-date-released: '2026-11-12'
 doi: 10.5281/zenodo.23676598
-license:
-- mit
+license: MIT
 message: If you use this software, please cite it using the metadata from this file.
-repository-code: https://github.com/rvandewater/PICdb_MEDS/tree/0.0.3
+repository-code: https://github.com/rvandewater/PICdb_MEDS
 title: PICdb MEDS ETL
 type: software
-version: 0.1.0

@@ -354,14 +354,16 @@ MEDS-Extract, suMEDS or polars upgrade can also move the output, so check it wit
 
 ## Releasing
 
-A release bumps the version in `pyproject.toml` with `uv version --bump`, commits it with the updated
-`CITATION.cff` and pushes a tag of that exact version, which publishes to PyPI and creates the GitHub
+A release bumps the version in `pyproject.toml` with `uv version --bump`, commits it and pushes a tag
+of that exact version, which publishes to PyPI and creates the GitHub
 release. See [`RELEASING.md`](https://github.com/rvandewater/PICdb_MEDS/blob/main/RELEASING.md) for choosing the bump, the
 full release commands, and recovering from a failed release.
 
 ## Breaking changes
 
-### Unreleased (after 0.1.0)
+### 0.2.0 (2026-11-20)
+
+- Rebuilt on the full release; `tests/regression/full_summary_stats.json` regenerated.
 
 - **ICD codes name the vocabulary and its edition apart, `ICD//<edition>//<code>`.** Diagnoses
     `DIAGNOSIS//ICD10_CN//<code>` and `ADMISSION_DIAGNOSIS//ICD10_CN//<code>` are now
@@ -370,11 +372,13 @@ full release commands, and recovering from a failed release.
     after the edition is unchanged (PIC's dotted `ICD10_CODE_CN`), and so are its `ICD10//<code>` and
     `ICDO3//<code>` parents. To migrate, rename codes with the regex
     `^(ADMISSION_)?DIAGNOSIS//ICD10_CN//` → `\1DIAGNOSIS//ICD//10CN//`.
+
 - **Vocabulary parents are spelled `VOCABULARY//CODE`.** The `parent_codes` the ETL writes itself
     (`ICD10`, `LOINC`) used one slash, `LOINC/2823-3`; they now use two, `LOINC//2823-3`, the
     spelling suMEDS already writes for the parents it adds. Codes and events are unchanged. To
     migrate, respell old parents with the regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR
     already read both spellings as the same parent.
+
 - **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
     ([#19](https://github.com/rvandewater/PICdb_MEDS/pull/19)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
     every code that ends in its unit gets the code without the unit (its stem) as its last
@@ -383,6 +387,7 @@ full release commands, and recovering from a failed release.
     Events are unchanged. On a MESSY-synth 0.1.1 build, 11 single-unit codes get a stem (11 new rows); on the release, every item and drug recorded in a single unit gets one. To migrate, nothing is needed unless a tool expects every
     `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
     ignore a parent that is the code without its last `//` component.
+
 - **The unit in a code is stripped of surrounding whitespace, and a blank one is `UNK`.** This
     applies to `LAB//{itemid}//{unit}`, `CHART//{itemid}//{unit}`, `FLUID_INPUT//{unit}`,
     `OUTPUT//{itemid}//{unit}` and `MEDICATION//START//{drug}//{dose unit}`. Before, the unit was
@@ -391,6 +396,7 @@ full release commands, and recovering from a failed release.
     codes change only where a unit was padded or blank. To migrate, strip the last part of an old
     code and write `UNK` for a blank one: `^(.*//)\s*(\S(?:.*\S)?)?\s*$` → `\1\2`, then an
     empty last part → `UNK`.
+
 - **Intermediate stage outputs are no longer kept.** Up to 0.1.0, a run left each stage's output in
     `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
     `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
