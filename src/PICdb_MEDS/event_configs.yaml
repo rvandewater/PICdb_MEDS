@@ -31,8 +31,8 @@
 #   Template wording follows the PIC documentation (https://physionet.org/content/picdb/1.1.0/) and
 #   the PIC descriptor paper (Zeng et al., Sci Data 2020, doi:10.1038/s41597-020-0355-4, CC BY 4.0).
 #   A `_self` template may reference only the code's own components, so each code gets exactly one
-#   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes, to which MEDS-Extract 0.8 attaches
-#   no metadata; their meaning is defined by the MEDS standard.
+#   description. `MEDS_BIRTH` and `MEDS_DEATH` are literal codes; MEDS-Extract (>= 0.8.1,
+#   mmcdermott/MEDS_extract#166) attaches `_self` metadata to them too, so they get a fixed description.
 # - Every code whose events carry a numeric value with a recorded unit gets that unit as `unit` in
 #   `metadata/codes.parquet`, as recorded: from the row's own unit column where the code already ends
 #   in it (labs, chart and output items, fluid input, prescription doses), and from
@@ -112,11 +112,19 @@ V1.1.0/PATIENTS:
   dob:
     code: MEDS_BIRTH
     time: '$DOB::"%Y-%m-%d %H:%M:%S"'
+    _metadata:
+      _self:
+        description: "'Birth (MEDS standard code). Time is the date of birth (PIC PATIENTS.DOB)'"
   death:
     code: MEDS_DEATH
     # Every non-null `DOD` agrees with the admission `DEATHTIME`, but a handful of subjects have
     # only the latter, so it takes precedence and `DOD` is the fallback.
     time: coalesce($DEATHTIME::?"%Y-%m-%d %H:%M:%S", $DOD::?"%Y-%m-%d %H:%M:%S")
+    _metadata:
+      _self:
+        description: >-
+          'Death (MEDS standard code). Time is the earliest in-hospital death time
+          (PIC ADMISSIONS.DEATHTIME), else the date of death (PIC PATIENTS.DOD)'
 
 # `EDREGTIME`/`EDOUTTIME` are identical to `ADMITTIME`/`DISCHTIME` in every row, so no separate ED
 # events are emitted. `LANGUAGE`, `RELIGION` and `MARITAL_STATUS` each hold a single value across
