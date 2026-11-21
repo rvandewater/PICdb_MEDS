@@ -127,8 +127,7 @@ missing identifying component (for example, no organism) produces no event for t
 
 ### Code metadata
 
-`metadata/codes.parquet` describes every code except `MEDS_BIRTH` and `MEDS_DEATH`, and links codes to
-PIC's dictionary tables:
+`metadata/codes.parquet` describes every code, and links codes to PIC's dictionary tables:
 
 - **`description`**: one English description per code, from one of two routes.
     - **PIC dictionaries**: the English label from `D_LABITEMS` (labs), `D_ICD_DIAGNOSES` (diagnoses) or
@@ -143,8 +142,9 @@ PIC's dictionary tables:
         names the five ICUs and says what `INPUTEVENTS` holds. The PhysioNet page explains the `+`/`-`
         symptom attribute and the "Other" ethnicity group. A specimen ID that `D_ITEMS` does not list
         gets a description saying so; its Chinese name is in `spec_type_desc_cn`.
-    - `MEDS_BIRTH` and `MEDS_DEATH` have no description. MEDS-Extract 0.8 attaches no metadata to a
-        literal code, and the MEDS standard defines what these two mean.
+    - `MEDS_BIRTH` and `MEDS_DEATH` get a fixed `_self` description: the MEDS standard code and the PIC
+        column their time comes from. MEDS-Extract attaches `_self` metadata to literal codes from 0.8.1
+        on (mmcdermott/MEDS_extract#166).
 - **`parent_codes`**: `LOINC//…` for lab items with a well-formed LOINC code, and `ICD10//…` for
     diagnoses whose mapped code is a valid 3- or 4-character WHO ICD-10 code. Both come from PIC's own
     dictionaries (`D_LABITEMS.LOINC_CODE`, `D_ICD_DIAGNOSES.ICD10_CODE`). PIC's own extended codes
