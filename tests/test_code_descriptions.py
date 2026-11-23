@@ -10,8 +10,6 @@ from pathlib import Path
 import yaml
 
 CONFIG_FP = Path(__file__).parents[1] / "src" / "PICdb_MEDS" / "event_configs.yaml"
-# MEDS-reserved literal codes. MEDS-Extract 0.8 attaches no metadata to a code without components.
-MEDS_LITERALS = {"MEDS_BIRTH", "MEDS_DEATH"}
 # OMOP `vocabulary_id`s that `parent_codes` may point into: codes PIC's own dictionaries carry. Other
 # vocabularies (ICD-O-3 morphology) are tagged by suMEDS through `sumeds_rules.yaml`.
 PARENT_VOCABULARIES = {"ICD10", "LOINC"}
@@ -31,9 +29,6 @@ def _events():
 def test_every_event_declares_exactly_one_description():
     """Two description sources for one code would be concatenated by MEDS-Extract."""
     for block, _table_cfg, event in _events():
-        if str(event["code"]) in MEDS_LITERALS:
-            assert "_metadata" not in event, block
-            continue
         sources = [prefix for prefix, meta in event.get("_metadata", {}).items() if "description" in meta]
         assert len(sources) == 1, f"{block}: description sources {sources}"
 
