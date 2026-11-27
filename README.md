@@ -361,6 +361,12 @@ full release commands, and recovering from a failed release.
 
 ## Breaking changes
 
+### 0.3.0 (2026-11-27)
+
+- No breaking changes. `MEDS_BIRTH` and `MEDS_DEATH` now have a description in `metadata/codes.parquet`: the
+    MEDS standard code and the PIC column their time comes from. They were the only codes without one.
+    Events and all other codes are unchanged.
+
 ### 0.2.0 (2026-11-20)
 
 - Rebuilt on the full release; `tests/regression/full_summary_stats.json` regenerated.
